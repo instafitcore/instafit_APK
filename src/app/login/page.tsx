@@ -33,7 +33,7 @@ export default function AdminLogin() {
         {/* Logo */}
         <div className="mb-6">
           <img
-            src="/logoinsta.jpg" // replace with your logo path
+            src="/logoInstaFitCore.jpg" // replace with your logo path
             alt="Instafit Core"
             className="w-60 h-50 object-contain"
           />

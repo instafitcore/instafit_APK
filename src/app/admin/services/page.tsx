@@ -1,664 +1,652 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase-client";
-import { Pencil } from "lucide-react";
+import { 
+  Search, 
+  User, 
+  Phone, 
+  X, 
+  Calendar, 
+  DollarSign, 
+  Clock, 
+  Filter, 
+  AlertTriangle, 
+  Loader2, 
+  RefreshCw, 
+  CheckCircle, 
+  Clock as PendingIcon, 
+  Truck, 
+  Wrench 
+} from "lucide-react";
 
-/**
- * Services Admin Page (final working)
- *
- * Important DB column assumptions:
- * - categories table: id, category, subcategory, image_url
- * - services table: id, category_id, service_name, price, description, images jsonb, features jsonb, created_at
- *
- * SQL for services (if you haven't run it):
- * create table services (
- *   id bigint generated always as identity primary key,
- *   category_id bigint not null references categories(id) on delete cascade,
- *   service_name text not null,
- *   price numeric,
- *   description text,
- *   images jsonb default '[]',
- *   features jsonb default '[]',
- *   created_at timestamp default now()
- * );
- *
- * Images are stored as base64 data URLs in the `images` jsonb array.
- */
-
-/* local uploaded doc path (available to you) */
-const uploadedDocPath = "/mnt/data/InstaFitCore Solutions Private Limited ( Website Content ).docx";
-
-type CategoryRow = {
+type Booking = {
   id: number;
-  category: string;
-  subcategory: string;
-  image_url?: string | null;
-};
-
-type ServiceRow = {
-  id: number;
-  category_id: number;
+  user_id: string | null;
+  customer_name: string;
   service_name: string;
-  price?: number | null;
-  description?: string | null;
-  images?: string[]; // multiple images stored here (base64 or URL)
-  features?: Array<{ name: string; value: string }>;
-  created_at?: string | null;
+  service_types: string[];
+  date: string;
+  booking_time: string;
+  total_price: number;
+  status: string;
+  payment_status?: string;
+  created_at: string;
+  address: string | null;
+  employee_name?: string | null;
+  employee_phone?: string | null;
 };
 
-export default function ServicesAdminPage() {
-  // lists
-  const [categories, setCategories] = useState<CategoryRow[]>([]);
-  const [services, setServices] = useState<ServiceRow[]>([]);
+// Define the authoritative list of status options and their order
+const STATUS_OPTIONS = [
+  "Pending",
+  "Confirmed", 
+  "Arriving Today",
+  "Work Done"
+];
 
-  // selects
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
-  const [subcategoriesForSelected, setSubcategoriesForSelected] = useState<CategoryRow[]>([]);
-  const [selectedSubcategoryName, setSelectedSubcategoryName] = useState<string>("");
+// Helper function for status colors and icons
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case "Pending":
+      return { 
+        classes: "bg-yellow-100 text-yellow-800 border-yellow-300", 
+        icon: PendingIcon 
+      };
+    case "Confirmed":
+      return { 
+        classes: "bg-blue-100 text-blue-800 border-blue-300", 
+        icon: CheckCircle 
+      };
+    case "Arriving Today":
+      return { 
+        classes: "bg-purple-100 text-purple-800 border-purple-300", 
+        icon: Truck 
+      };
+    case "Work Done":
+      return { 
+        classes: "bg-green-100 text-green-800 border-green-300", 
+        icon: Wrench 
+      };
+    default:
+      return { 
+        classes: "bg-gray-100 text-gray-800 border-gray-300", 
+        icon: PendingIcon 
+      };
+  }
+};
 
-  // add form
-  const [serviceName, setServiceName] = useState("");
-  const [price, setPrice] = useState<string>("");
-  const [description, setDescription] = useState("");
-  const [imageFiles, setImageFiles] = useState<File[]>([]); // new files chosen
-  const [previews, setPreviews] = useState<string[]>([]); // object URLs for preview
+// A list of all unique service types across all bookings for the filter dropdown
+const ALL_SERVICE_TYPES = ["Installation", "Dismantle", "Repair", "Maintenance", "Cleanup"]; 
 
-  // features
-  const [features, setFeatures] = useState<Array<{ name: string; value: string }>>([{ name: "", value: "" }]);
+// =========================================================================
+// BOOKINGS PAGE COMPONENT
+// =========================================================================
 
-  // ui
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+export default function BookingsPage() {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [filtered, setFiltered] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // edit modal state
-  const [editOpen, setEditOpen] = useState(false);
-  const [editService, setEditService] = useState<ServiceRow | null>(null);
-  const [editServiceName, setEditServiceName] = useState("");
-  const [editPrice, setEditPrice] = useState<string>("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editExistingImages, setEditExistingImages] = useState<string[]>([]); // images already in DB for the service
-  const [editNewFiles, setEditNewFiles] = useState<File[]>([]); // new files chosen during edit
-  const [editPreviews, setEditPreviews] = useState<string[]>([]); // object URLs for newly chosen edit files
-  const [editFeatures, setEditFeatures] = useState<Array<{ name: string; value: string }>>([]);
-  const [serviceType, setServiceType] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [paymentFilter, setPaymentFilter] = useState("All Payment Status");
+  const [serviceTypeFilter, setServiceTypeFilter] = useState("All Service Types");
 
-  // helpers
-  const convertToBase64 = (file: File | null) =>
-    new Promise<string | null>((resolve, reject) => {
-      if (!file) return resolve(null);
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string | null);
-      reader.onerror = (err) => reject(err);
-    });
+  // --- MODAL STATE ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
+  const [employeeName, setEmployeeName] = useState("");
+  const [employeePhone, setEmployeePhone] = useState("");
+  const [newStatus, setNewStatus] = useState("");
+  const [modalError, setModalError] = useState("");
+  // -------------------
 
-  // load initial data
+  // Fetches initial data
+  const fetchBookings = async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) setRefreshing(true);
+    else setLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (!error) {
+        // Ensure service_types is an array for type safety
+        const normalizedData = (data || []).map(b => ({
+          ...b,
+          service_types: b.service_types || []
+        }));
+        setBookings(normalizedData);
+        setFiltered(normalizedData);
+      } else {
+        console.error("Error fetching bookings:", error);
+        setBookings([]);
+        setFiltered([]);
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setBookings([]);
+      setFiltered([]);
+    }
+    
+    setLoading(false);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
-    loadCategories();
-    loadServices();
-    // cleanup object URLs on unmount
-    return () => {
-      previews.forEach((u) => URL.revokeObjectURL(u));
-      editPreviews.forEach((u) => URL.revokeObjectURL(u));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchBookings();
   }, []);
 
-  // load categories
-  const loadCategories = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.from<CategoryRow>("categories").select("*").order("id", { ascending: false });
-      if (error) {
-        console.error("Error loading categories:", error);
-        setCategories([]);
-      } else {
-        setCategories(data || []);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // load services
-  const loadServices = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.from<ServiceRow>("services").select("*").order("id", { ascending: false });
-      if (error) {
-        console.error("Error loading services:", error);
-        setServices([]);
-      } else {
-        const normalized = (data || []).map((s: any) => ({
-          ...s,
-          images: s.images ?? [],
-          features: s.features ?? [],
-        })) as ServiceRow[];
-        setServices(normalized);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // when category name changes, set subcategories
+  // Filter/Search Logic
   useEffect(() => {
-    if (!selectedCategoryName) {
-      setSubcategoriesForSelected([]);
-      setSelectedSubcategoryName("");
-      return;
-    }
-    const filtered = categories.filter((c) => c.category === selectedCategoryName);
-    setSubcategoriesForSelected(filtered);
-    setSelectedSubcategoryName("");
-  }, [selectedCategoryName, categories]);
-
-  // features helpers
-  const addFeatureRow = () => setFeatures((p) => [...p, { name: "", value: "" }]);
-  const removeFeatureRow = (index: number) => {
-    if (features.length === 1) {
-      alert("At least one feature is required");
-      return;
-    }
-    setFeatures((p) => p.filter((_, i) => i !== index));
-  };
-  const updateFeature = (index: number, key: "name" | "value", val: string) =>
-    setFeatures((p) => p.map((f, i) => (i === index ? { ...f, [key]: val } : f)));
-
-  // reset add form - FIXED (no undefined references)
-  const resetAddForm = () => {
-    setSelectedCategoryName("");
-    setSelectedSubcategoryName("");
-    setServiceName("");
-    setPrice("");
-    setDescription("");
-    setImageFiles([]);
-    setPreviews([]);
-    setFeatures([{ name: "", value: "" }]);
-  };
-
-  // add service submit
-  const handleAddService = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCategoryName || !selectedSubcategoryName) {
-      alert("Please select Category and Subcategory.");
-      return;
-    }
-    if (!serviceName.trim()) {
-      alert("Please enter Service Name.");
-      return;
+    let results = bookings;
+    
+    if (search.trim() !== "") {
+      results = results.filter(
+        (b) =>
+          b.customer_name.toLowerCase().includes(search.toLowerCase()) ||
+          b.service_name.toLowerCase().includes(search.toLowerCase()) ||
+          b.address?.toLowerCase().includes(search.toLowerCase()) ||
+          b.employee_name?.toLowerCase().includes(search.toLowerCase())
+      );
     }
 
-    // enforce images 1..7
-    if (imageFiles.length < 1) {
-      alert("Please select at least 1 image.");
-      return;
-    }
-    if (imageFiles.length > 7) {
-      alert("Maximum 7 images allowed.");
-      return;
+    if (statusFilter !== "All Status") {
+      results = results.filter((b) => b.status === statusFilter);
     }
 
-    setSubmitting(true);
-    try {
-      const categoryRow = categories.find((c) => c.category === selectedCategoryName && c.subcategory === selectedSubcategoryName);
-      if (!categoryRow) {
-        alert("Selected category/subcategory not found.");
-        setSubmitting(false);
-        return;
-      }
-
-      // convert images to base64
-      const base64Images = await Promise.all(imageFiles.map((f) => convertToBase64(f)));
-      const preparedImages = base64Images.filter(Boolean) as string[];
-
-      // prepare features
-      const preparedFeatures = features.filter((f) => f.name.trim()).map((f) => ({ name: f.name.trim(), value: f.value.trim() }));
-      const { error } = await supabase.from("services").insert([
-        {
-          category_id: categoryRow.id,
-          service_name: serviceName.trim(),
-          service_type: serviceType || null,   // <-- ADD THIS
-          price: price ? Number(price) : null,
-          description: description.trim() || null,
-          images: preparedImages,
-          features: preparedFeatures,
-        },
-      ]);
-
-      if (error) {
-        console.error("Insert service error:", error);
-        alert("Failed to add service. See console for details.");
-      } else {
-        await loadServices();
-        resetAddForm();
-      }
-    } catch (err) {
-      console.error("Error while adding service:", err);
-      alert("Error while adding service.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // open edit modal
-  const openEdit = (s: ServiceRow) => {
-    setEditService(s);
-    setEditServiceName(s.service_name);
-    setEditPrice(s.price != null ? String(s.price) : "");
-    setEditDescription(s.description || "");
-    setEditExistingImages(s.images ? [...s.images] : []);
-    setServiceType(s.service_type || "");
-    setEditNewFiles([]);
-    setEditPreviews([]);
-    setEditFeatures(s.features && s.features.length ? JSON.parse(JSON.stringify(s.features)) : [{ name: "", value: "" }]);
-    setEditOpen(true);
-  };
-
-  // handle save edit
-  const handleSaveEdit = async () => {
-    if (!editService) return;
-    if (!editServiceName.trim()) {
-      alert("Please enter service name.");
-      return;
+    if (paymentFilter !== "All Payment Status") {
+      results = results.filter((b) => b.payment_status === paymentFilter);
     }
 
-    // combine retained existing images + newly added images
-    // enforce 1..7 total
-    const totalImagesCount = editExistingImages.length + editNewFiles.length;
-    if (totalImagesCount < 1) {
-      alert("At least one image is required.");
-      return;
-    }
-    if (totalImagesCount > 7) {
-      alert("Maximum 7 images allowed.");
-      return;
+    if (serviceTypeFilter !== "All Service Types") {
+      results = results.filter((b) => b.service_types.includes(serviceTypeFilter));
     }
 
-    setSubmitting(true);
-    try {
-      // convert new files to base64
-      const newBase64 = await Promise.all(editNewFiles.map((f) => convertToBase64(f)));
-      const preparedNew = newBase64.filter(Boolean) as string[];
+    setFiltered(results);
+  }, [search, statusFilter, paymentFilter, serviceTypeFilter, bookings]);
 
-      const finalImages = [...editExistingImages, ...preparedNew];
+  // Status Change Handler (opens modal if 'Arriving Today')
+  const handleStatusChange = (id: number, status: string) => {
+    if (status === "Arriving Today") {
+      const booking = bookings.find(b => b.id === id);
+      
+      setEmployeeName(booking?.employee_name || "");
+      setEmployeePhone(booking?.employee_phone || "");
 
-      const preparedFeatures = (editFeatures || []).filter((f) => f.name.trim()).map((f) => ({ name: f.name.trim(), value: f.value.trim() }));
-
-      const { error } = await supabase.from("services").update({
-        service_name: editServiceName.trim(),
-        service_type: serviceType,  // <--- added
-        price: editPrice ? Number(editPrice) : null,
-        description: editDescription.trim() || null,
-        images: finalImages,
-        features: preparedFeatures,
-      }).eq("id", editService.id);
-
-
-      if (error) {
-        console.error("Update error:", error);
-        alert("Failed to update service. See console for details.");
-      } else {
-        await loadServices();
-        setEditOpen(false);
-      }
-    } catch (err) {
-      console.error("Error while updating service:", err);
-      alert("Error while updating service.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // delete service
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this service?")) return;
-    const { error } = await supabase.from("services").delete().eq("id", id);
-    if (error) {
-      console.error("Delete error:", error);
-      alert("Failed to delete.");
+      setSelectedBookingId(id);
+      setNewStatus(status);
+      setModalError(""); 
+      setIsModalOpen(true);
     } else {
-      await loadServices();
+      // For all other status changes, update immediately
+      updateStatus(id, status);
     }
   };
 
-  // UI helpers for editing images: remove existing or remove new preview
-  const removeExistingEditImage = (index: number) => {
-    setEditExistingImages((p) => p.filter((_, i) => i !== index));
+  // Function to handle modal submission
+  const assignEmployeeAndProceed = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBookingId) return;
+
+    if (!employeeName.trim() || !employeePhone.trim()) {
+      setModalError("Employee Name and Phone are required to set status to 'Arriving Today'.");
+      return;
+    }
+
+    setModalError("");
+    await updateStatus(selectedBookingId, newStatus, employeeName, employeePhone);
   };
-  const removeNewEditFile = (index: number) => {
-    // revoke URL
-    URL.revokeObjectURL(editPreviews[index]);
-    setEditNewFiles((p) => p.filter((_, i) => i !== index));
-    setEditPreviews((p) => p.filter((_, i) => i !== index));
+
+  // Core Update Function
+  const updateStatus = async (
+    id: number,
+    status: string,
+    name: string | null = null,
+    phone: string | null = null
+  ) => {
+    setUpdating(true);
+
+    const updateData: {
+      status: string;
+      employee_name?: string | null;
+      employee_phone?: string | null;
+    } = { status };
+
+    if (name !== null) updateData.employee_name = name;
+    if (phone !== null) updateData.employee_phone = phone;
+
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update(updateData)
+        .eq("id", id);
+
+      if (!error) {
+        // Local State Update
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.id === id
+              ? {
+                  ...b,
+                  status: status,
+                  employee_name: name ?? b.employee_name, 
+                  employee_phone: phone ?? b.employee_phone, 
+                }
+              : b
+          )
+        );
+        // If coming from modal, close it
+        if (isModalOpen) {
+          setIsModalOpen(false);
+          setSelectedBookingId(null);
+          setEmployeeName("");
+          setEmployeePhone("");
+          setNewStatus("");
+        }
+      } else {
+        console.error("Error updating booking:", error);
+        alert("Failed to update booking status. Please try again.");
+      }
+    } catch (err) {
+      console.error("Unexpected error during update:", err);
+      alert("An unexpected error occurred. Please try again.");
+    }
+    setUpdating(false);
   };
+
+  // Helper function to determine if an option should be disabled
+  const isStatusDisabled = (currentStatus: string, option: string): boolean => {
+    const currentIndex = STATUS_OPTIONS.indexOf(currentStatus);
+    const optionIndex = STATUS_OPTIONS.indexOf(option);
+    
+    // Disable any option whose index is less than the current status index (i.e., previous steps)
+    // This ensures the workflow progresses forward only.
+    return optionIndex < currentIndex;
+  };
+
+  const uniqueServiceTypes = useMemo(() => {
+    const types = new Set<string>();
+    bookings.forEach(b => b.service_types.forEach(t => types.add(t)));
+    return Array.from(types).sort();
+  }, [bookings]);
+
+  // Calculate summary metrics
+  const summaryMetrics = useMemo(() => {
+    const total = bookings.length;
+    const pending = bookings.filter(b => b.status === "Pending").length;
+    const confirmed = bookings.filter(b => b.status === "Confirmed").length;
+    const arriving = bookings.filter(b => b.status === "Arriving Today").length;
+    const completed = bookings.filter(b => b.status === "Work Done").length;
+    const paid = bookings.filter(b => b.payment_status === "Paid").length;
+    const totalRevenue = bookings.reduce((sum, b) => sum + b.total_price, 0);
+
+    return { total, pending, confirmed, arriving, completed, paid, totalRevenue };
+  }, [bookings]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Services Management</h2>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[500px_1fr] gap-6">
-          {/* LEFT: Add Service Form */}
-          <div className="bg-white w-[500px] rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Service</h3>
-
-            <form onSubmit={handleAddService} className="space-y-4">
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Category</label>
-                <select
-                  value={selectedCategoryName}
-                  onChange={(e) => setSelectedCategoryName(e.target.value)}
-                  className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select Category</option>
-                  {[...new Set(categories.map((c) => c.category))].map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subcategory */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Subcategory</label>
-                <select
-                  value={selectedSubcategoryName}
-                  onChange={(e) => setSelectedSubcategoryName(e.target.value)}
-                  disabled={!selectedCategoryName}
-                  className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm"
-                >
-                  <option value="">Select Subcategory</option>
-                  {subcategoriesForSelected.map((r) => <option key={r.id} value={r.subcategory}>{r.subcategory}</option>)}
-                </select>
-              </div>
-
-              {/* Service Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Service Name</label>
-                <input value={serviceName} onChange={(e) => setServiceName(e.target.value)} type="text" placeholder="e.g., TV Mounting" className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm" required />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Service Type</label>
-                <select
-                  value={serviceType}
-                  onChange={(e) => setServiceType(e.target.value)}
-                  className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select Type</option>
-                  <option value="Installation">Installation</option>
-                  <option value="Dismantling">Dismantling</option>
-                  <option value="Reassembly">Reassembly</option>
-                </select>
-              </div>
-
-
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Price (optional)</label>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="e.g., 499" className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm" />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description of the service" className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm" />
-              </div>
-
-              {/* Images multi */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Service Images</label>
-                <label htmlFor="service-images" className="mt-2 relative cursor-pointer block w-full rounded-lg border-2 border-dashed border-gray-200 p-4 text-center hover:bg-gray-50">
-                  {previews.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-2">
-                      {previews.map((src, i) => <img key={i} src={src} className="h-24 w-full object-cover rounded-md" />)}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">Choose 1–7 Images (Click or Drag & Drop)</div>
-                  )}
-
-                  <input id="service-images" type="file" accept="image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files ?? []);
-                      if (files.length < 1) { alert("You must select at least 1 image."); return; }
-                      if (files.length > 7) { alert("Maximum allowed is 7 images."); return; }
-                      setImageFiles(files);
-                      const urls = files.map((f) => URL.createObjectURL(f));
-                      // revoke previous previews
-                      previews.forEach((u) => URL.revokeObjectURL(u));
-                      setPreviews(urls);
-                    }}
-                  />
-                </label>
-                <p className="mt-2 text-xs text-gray-400">Allows minimum 1 and maximum 7 images.</p>
-              </div>
-
-              {/* Features */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Features</label>
-                <div className="mt-2 space-y-2">
-                  {features.map((f, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input value={f.name} onChange={(e) => updateFeature(i, "name", e.target.value)} placeholder="Feature name (e.g., Warranty)" className="flex-1 px-3 py-2 border rounded-lg" />
-                      <input value={f.value} onChange={(e) => updateFeature(i, "value", e.target.value)} placeholder="Value (e.g., 6 months)" className="flex-1 px-3 py-2 border rounded-lg" />
-                      <button type="button" onClick={() => removeFeatureRow(i)} className="px-3 py-2 bg-red-50 text-red-600 rounded-lg">Remove</button>
-                    </div>
-                  ))}
-                  <div className="pt-2">
-                    <button type="button" onClick={addFeatureRow} className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg">+ Add Feature</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit + Reset */}
-              <div className="flex items-center gap-3">
-                <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg">{submitting ? "Saving..." : "Save Service"}</button>
-                <button type="button" onClick={resetAddForm} className="px-4 py-2 border rounded-lg bg-white text-gray-700 hover:bg-gray-50">Reset</button>
-              </div>
-            </form>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+              Booking Management Dashboard
+            </h1>
+            <p className="text-gray-600">Manage and track all service bookings efficiently</p>
           </div>
+          <button
+            onClick={() => fetchBookings(true)}
+            disabled={refreshing}
+            className="mt-4 sm:mt-0 flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
 
-          {/* RIGHT: Services list */}
-          {/* RIGHT: Services list */}
-          <div className="w-full">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <input
-                  placeholder="Search services by name..."
-                  className="w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onChange={async (e) => {
-                    const q = e.target.value.trim();
-                    if (!q) {
-                      await loadServices();
-                      return;
-                    }
-                    setLoading(true);
-                    const { data, error } = await supabase.from<ServiceRow>("services").select("*").ilike("service_name", `%${q}%`).order("id", { ascending: false });
-                    if (!error) setServices((data || []).map((s: any) => ({ ...s, images: s.images ?? [], features: s.features ?? [] })));
-                    setLoading(false);
-                  }}
-                />
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                <p className="text-2xl font-bold text-gray-900">{summaryMetrics.total}</p>
               </div>
-              <div className="ml-4 text-sm text-gray-600">
-                <span>{loading ? "Loading..." : `${services.length} services`}</span>
+              <Calendar className="w-8 h-8 text-blue-500" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">{summaryMetrics.pending}</p>
               </div>
+              <PendingIcon className="w-8 h-8 text-yellow-500" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Paid</p>
+                <p className="text-2xl font-bold text-green-600">{summaryMetrics.paid}</p>
+              </div>
+              <DollarSign className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">₹{summaryMetrics.totalRevenue.toFixed(2)}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Card */}
+        <div className="bg-white shadow-lg rounded-xl p-6 border border-gray-200 mb-8">
+          <h2 className="text-xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
+            <Filter className="w-5 h-5" /> 
+            Filters & Search
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search bookings..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+              />
             </div>
 
-            {/* cards grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {services.length === 0 && !loading ? (
-                <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-xl border">No services found.</div>
-              ) : (
-                services.map((s) => (
-                  <div key={s.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col">
-                    <div className="w-full h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
-                      {s.images && s.images.length > 0 ? (
-                        // show first image
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.images[0]} alt={s.service_name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="text-gray-400">No Image</div>
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+            >
+              <option>All Status</option>
+              {STATUS_OPTIONS.map(s => <option key={`filter-${s}`}>{s}</option>)}
+            </select>
+
+            {/* Payment Filter */}
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+            >
+              <option>All Payment Status</option>
+              <option>Paid</option>
+              <option>Unpaid</option>
+            </select>
+
+            {/* Service Type Filter */}
+            <select
+              value={serviceTypeFilter}
+              onChange={(e) => setServiceTypeFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+            >
+              <option>All Service Types</option>
+              {uniqueServiceTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date & Time
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Price / Payment
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Address
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employee
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin mr-3 text-blue-500" />
+                        <span className="text-gray-500 text-lg">Loading bookings...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="text-gray-500 text-lg">
+                        No bookings found matching your filters.
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((b) => {
+                    const statusConfig = getStatusConfig(b.status);
+                    return (
+                      <tr key={b.id} className="hover:bg-gray-50 transition-colors duration-150">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {b.customer_name}
+                              </div>
+                                                            <div className="text-sm text-gray-500">
+                                Types: {b.service_types.join(", ")}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 font-medium">{b.service_name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <Calendar className="w-4 h-4 mr-1 text-gray-400" />
+                            {b.date}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500 mt-1">
+                            <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                            {b.booking_time}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-lg font-bold text-green-600">₹{b.total_price.toFixed(2)}</div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            b.payment_status === 'Paid' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {b.payment_status || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-xs truncate">
+                            {b.address || "Address Not Provided"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {b.employee_name ? (
+                            <div>
+                              <div className="flex items-center text-sm text-gray-900">
+                                <User className="w-4 h-4 mr-1 text-gray-400" />
+                                {b.employee_name}
+                              </div>
+                              <div className="flex items-center text-sm text-blue-600 mt-1">
+                                <Phone className="w-4 h-4 mr-1" />
+                                {b.employee_phone}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              Not Assigned
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <select
+                              value={b.status}
+                              onChange={(e) => handleStatusChange(b.id, e.target.value)}
+                              className={`border text-sm px-3 py-1.5 rounded-lg font-medium shadow-sm outline-none transition-all duration-200 ${getStatusConfig(b.status).classes}`}
+                              disabled={updating}
+                            >
+                              {STATUS_OPTIONS.map((statusOption) => (
+                                <option
+                                  key={statusOption}
+                                  value={statusOption}
+                                  disabled={isStatusDisabled(b.status, statusOption)}
+                                  className={isStatusDisabled(b.status, statusOption) ? "text-gray-400" : "text-gray-900"}
+                                >
+                                  {statusOption}
+                                </option>
+                              ))}
+                            </select>
+                            {updating && <Loader2 className="w-4 h-4 animate-spin ml-2 text-blue-500" />}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Employee Assignment Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setIsModalOpen(false)}></div>
+              </div>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                      <User className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                        Assign Employee & Confirm
+                      </h3>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Enter the service professional's details to confirm that they are <strong>Arriving Today</strong> for Booking ID: <strong>{selectedBookingId}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={assignEmployeeAndProceed}>
+                  <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <div className="flex-1">
+                      <div className="space-y-4">
+                        {/* Employee Name Input */}
+                        <div>
+                          <label htmlFor="employeeName" className="block text-sm font-medium text-gray-700 mb-1">
+                            Employee Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            id="employeeName"
+                            type="text"
+                            value={employeeName}
+                            onChange={(e) => setEmployeeName(e.target.value)}
+                            placeholder="e.g., Jane Smith"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                            required
+                          />
+                        </div>
+
+                        {/* Employee Phone Input */}
+                        <div>
+                          <label htmlFor="employeePhone" className="block text-sm font-medium text-gray-700 mb-1">
+                            Employee Phone Number <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            id="employeePhone"
+                            type="tel"
+                            value={employeePhone}
+                            onChange={(e) => setEmployeePhone(e.target.value)}
+                            placeholder="e.g., 9876543210"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {modalError && (
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center">
+                            <AlertTriangle className="w-4 h-4 text-red-500 mr-2" />
+                            <p className="text-sm font-medium text-red-600">{modalError}</p>
+                          </div>
+                        </div>
                       )}
                     </div>
-
-                    <div className="p-4 flex-1 flex flex-col">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800">{s.service_name}</h3>
-                          <p className="text-sm text-gray-500 mt-1">Price: {s.price != null ? `₹${s.price}` : "N/A"}</p>
-                          <p className="text-xs text-gray-400 mt-2">Category ID: {s.category_id}</p>
-
-                          {/* compact features preview */}
-                          {s.features && s.features.length > 0 && (
-                            <div className="text-xs text-gray-500 mt-2 leading-tight">
-                              <div className="truncate"><strong>{s.features[0].name}:</strong> {s.features[0].value}</div>
-                              {s.features.length > 1 && <div className="text-gray-400 truncate">+{s.features.length - 1} more</div>}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="text-right text-xs text-gray-400">
-                          {s.created_at ? new Date(s.created_at).toLocaleDateString() : ""}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-between gap-3">
-                        <button onClick={() => openEdit(s)} className="px-3 py-1 rounded-lg bg-blue-100 text-blue-600 text-sm hover:bg-blue-200 flex items-center gap-1">
-                          <Pencil size={16} /> Edit
-                        </button>
-
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => handleDelete(s.id)} className="px-3 py-1 rounded-lg bg-red-50 text-red-600 text-sm hover:bg-red-100">
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                ))
-              )}
+
+                  <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button
+                      type="submit"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 flex items-center"
+                      disabled={updating}
+                    >
+                      {updating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Confirm & Set Status to "{newStatus}"
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                      disabled={updating}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Edit Modal */}
-      {editOpen && editService && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-[800px] relative max-h-[90vh] overflow-auto">
-            <button className="absolute top-3 right-3 text-gray-500" onClick={() => setEditOpen(false)}>✖</button>
-            <h2 className="text-xl font-bold mb-4">Edit Service</h2>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium">Service Name</label>
-                <input value={editServiceName} onChange={(e) => setEditServiceName(e.target.value)} className="mt-1 w-full px-4 py-2 border rounded-lg" />
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium">Price</label>
-                  <input value={editPrice} onChange={(e) => setEditPrice(e.target.value)} type="number" className="mt-1 w-full px-4 py-2 border rounded-lg" />
-                </div>
-
-                <div className="flex-1">
-                  <label className="block text-sm font-medium">Category ID</label>
-                  <input value={String(editService.category_id)} readOnly className="mt-1 w-full px-4 py-2 border rounded-lg bg-gray-50" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">Description</label>
-                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="mt-1 w-full px-4 py-2 border rounded-lg" />
-              </div>
-
-              {/* Service Type */}
-              <div>
-                <label className="block text-sm font-medium">Service Type</label>
-                <select
-                  value={serviceType}
-                  onChange={(e) => setServiceType(e.target.value)}
-                  className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select Type</option>
-                  <option value="Installation">Installation</option>
-                  <option value="Dismantling">Dismantling</option>
-                  <option value="Reassembly">Reassembly</option>
-                </select>
-              </div>
-
-
-              {/* Existing images (from DB) */}
-              <div>
-                <label className="block text-sm font-medium">Existing Images</label>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {editExistingImages.length === 0 && <div className="text-gray-500">No images</div>}
-                  {editExistingImages.map((src, i) => (
-                    <div key={i} className="relative">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} className="h-28 w-full object-cover rounded-md" />
-                      <button type="button" onClick={() => removeExistingEditImage(i)} className="absolute top-1 right-1 bg-white rounded-full p-1 text-red-600">✖</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Add new images in edit */}
-              <div>
-                <label className="block text-sm font-medium">Add More Images (will append)</label>
-                <label className="mt-2 relative cursor-pointer block w-full rounded-lg border-2 border-dashed border-gray-200 p-4 text-center hover:bg-gray-50">
-                  {editPreviews.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-2">
-                      {editPreviews.map((src, i) => <img key={i} src={src} className="h-24 w-full object-cover rounded-md" />)}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">Choose 1–7 images in total (existing + new must be ≤ 7)</div>
-                  )}
-
-                  <input type="file" accept="image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files ?? []);
-                      // check combined count
-                      if (editExistingImages.length + files.length > 7) {
-                        alert("Maximum allowed images in total is 7.");
-                        return;
-                      }
-                      // append
-                      const newPreviews = files.map((f) => URL.createObjectURL(f));
-                      setEditNewFiles((p) => [...p, ...files]);
-                      setEditPreviews((p) => [...p, ...newPreviews]);
-                    }}
-                  />
-                </label>
-              </div>
-
-              {/* Edit features */}
-              <div>
-                <label className="block text-sm font-medium">Features</label>
-                <div className="mt-2 space-y-2">
-                  {editFeatures.map((f, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input value={f.name} onChange={(e) => setEditFeatures((prev) => prev.map((p, idx) => idx === i ? { ...p, name: e.target.value } : p))} placeholder="Feature name" className="flex-1 px-3 py-2 border rounded-lg" />
-                      <input value={f.value} onChange={(e) => setEditFeatures((prev) => prev.map((p, idx) => idx === i ? { ...p, value: e.target.value } : p))} placeholder="Value" className="flex-1 px-3 py-2 border rounded-lg" />
-                      <button type="button" onClick={() => setEditFeatures((p) => p.filter((_, j) => j !== i))} className="px-3 py-2 bg-red-50 text-red-600 rounded-lg">Remove</button>
-                    </div>
-                  ))}
-                  <div className="pt-2">
-                    <button type="button" onClick={() => setEditFeatures((p) => [...p, { name: "", value: "" }])} className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg">+ Add Feature</button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-4">
-                <button onClick={handleSaveEdit} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg" disabled={submitting}>{submitting ? "Saving..." : "Save Changes"}</button>
-                <button onClick={() => setEditOpen(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

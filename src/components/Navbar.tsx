@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase-client";
-import { User as UserIcon, Menu, X, Search, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { User as UserIcon, Menu, X, Search, Mail, Lock, Eye, EyeOff, Heart, ShoppingCart } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 type Category = {
@@ -21,6 +21,8 @@ export default function FullNavbar() {
   const [search, setSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   const [showAuth, setShowAuth] = useState(false);
   const [mode, setMode] = useState<AuthMode>("login");
@@ -79,6 +81,35 @@ export default function FullNavbar() {
     init();
     return () => subscription?.unsubscribe?.();
   }, []);
+
+  // Fetch cart & wishlist items
+  useEffect(() => {
+    if (!user) {
+      setCartCount(0);
+      setWishlistCount(0);
+      return;
+    }
+
+    const fetchCounts = async () => {
+      // Cart Count
+      const { count: cartTotal } = await supabase
+        .from("cart")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      setCartCount(cartTotal || 0);
+
+      // Wishlist Count
+      const { count: wishlistTotal } = await supabase
+        .from("wishlist")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      setWishlistCount(wishlistTotal || 0);
+    };
+
+    fetchCounts();
+  }, [user]);
 
   const clearAlerts = () => {
     setMessage(null);
@@ -150,19 +181,35 @@ export default function FullNavbar() {
     <>
       <header className="bg-white border-b border-gray-200 shadow-lg sticky top-0 z-50 transition-shadow duration-300">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          {/* Logo */}
+
+          {/* ⭐ UPDATED LOGO SECTION FOR BETTER ALIGNMENT AND BRANDING ⭐
+            
+            1. The outer Link uses 'flex items-center' for vertical alignment.
+            2. The Image component now uses the correct size to make the logo icon stand out.
+            3. The site name and tagline are explicitly added next to the image.
+          */}
           <Link href="/site" className="flex items-center gap-3 shrink-0">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center shadow-md">
-              <Image src="/logo2.jpg" alt="InstaFitCore Logo" width={76} height={96} className="object-contain rounded-full" />
+            {/* Logo Image/Icon Holder */}
+            <div className="w-14 h-14 shrink-0">
+              <Image
+                src="/logoInstaFit.jpg"
+                alt="InstaFitCore Logo"
+                width={66}
+                height={66}
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div className="leading-tight">
-              <div className="text-xl font-bold text-gray-900">InstaFitCore</div>
-              <div className="text-xs text-gray-500">One Stop Solutions</div>
+
+            {/* Text Branding */}
+            <div className="leading-tight hidden sm:block">
+              <div className="text-xl font-bold" style={{ color: '#8ed26b' }}>INSTAFITCORE</div>
+              <div className="text-xs text-black">One Stop Solutions</div>
             </div>
           </Link>
 
+
           {/* Search Bar */}
-          <div className="flex-1 max-w-md mx-4">
+          <div className="flex-1 max-w-md mx-4 hidden md:block"> {/* Hide search on small screens for better layout */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -176,65 +223,99 @@ export default function FullNavbar() {
           </div>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6"> {/* Use lg:flex for nav links to save space */}
             <Link href="/site" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
               Home
             </Link>
             <Link href="/site/services" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Our Services
+              Services
             </Link>
             <Link href="/site/about" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              About Us
-            </Link>
-            <Link href="/site/terms" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Terms & Conditions
+              About
             </Link>
             <Link href="/site/contact" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Contact Us
+              Contact
             </Link>
             <Link href="/site/order-tracking" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Order Tracking
+              Track
             </Link>
           </nav>
 
-          {/* Auth/Profile and Mobile Menu */}
-          <div className="flex items-center gap-4">
+          {/* Wishlist, Cart, Auth/Profile, and Mobile Menu */}
+          <div className="flex items-center gap-4 shrink-0">
+
+            {/* Conditional Block: Show Sign In button OR Icons/Profile */}
             {!user ? (
+              // Renders when NOT logged in
               <button
                 onClick={() => {
                   clearAlerts();
                   setMode("login");
                   setShowAuth(true);
                 }}
-                className="hidden sm:block bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-2 rounded-full font-semibold hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-md"
+                className="hidden sm:block bg-gradient-to-r text-white px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 shadow-md whitespace-nowrap"
+                style={{ backgroundColor: "#8ed26b" }}
               >
                 Sign Up / Sign In
               </button>
+
             ) : (
-              <div className="relative">
-                <button
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm"
-                  title="Profile"
+              // Renders when LOGGED IN: Wishlist, Cart, and Profile
+              <div className="flex items-center gap-4">
+
+                {/* Wishlist - Only visible when logged in */}
+                <Link
+                  href="/site/wishlist"
+                  className="relative hover:scale-110 transition"
                 >
-                  <UserIcon className="w-5 h-5 text-gray-700" />
-                </button>
-                {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 animate-in slide-in-from-top-2">
-                    <button
-                      onClick={() => setShowProfileDropdown(false)}
-                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <UserIcon className="w-4 h-4" /> Profile
-                    </button>
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <X className="w-4 h-4" /> Sign Out
-                    </button>
-                  </div>
-                )}
+                  <Heart className="w-6 h-6 text-gray-700" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Cart - Only visible when logged in */}
+                <Link
+                  href="/site/cart"
+                  className="relative hover:scale-110 transition"
+                >
+                  <ShoppingCart className="w-6 h-6 text-gray-700" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Profile Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                    className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm"
+                    title="Profile"
+                  >
+                    <UserIcon className="w-5 h-5 text-gray-700" />
+                  </button>
+                  {showProfileDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 animate-in slide-in-from-top-2">
+                      <Link
+                        href="/site/profile"
+                        onClick={() => setShowProfileDropdown(false)}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <UserIcon className="w-4 h-4" /> Profile
+                      </Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <X className="w-4 h-4" /> Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -252,6 +333,17 @@ export default function FullNavbar() {
         {mobileOpen && (
           <div className="md:hidden bg-white border-t border-gray-200 shadow-inner">
             <div className="px-4 py-4 flex flex-col gap-3">
+              {/* Mobile Search */}
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
               <Link href="/site" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
                 Home
               </Link>
@@ -260,9 +352,6 @@ export default function FullNavbar() {
               </Link>
               <Link href="/site/about" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
                 About Us
-              </Link>
-              <Link href="/site/terms" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
-                Terms & Conditions
               </Link>
               <Link href="/site/contact" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
                 Contact Us
@@ -278,10 +367,12 @@ export default function FullNavbar() {
                     setShowAuth(true);
                     setMobileOpen(false);
                   }}
-                  className="mt-2 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full font-semibold hover:from-green-600 hover:to-blue-600 transition-all duration-200"
+                  className="mt-2 py-3 text-white rounded-full font-semibold transition-all duration-200"
+                  style={{ backgroundColor: "#8ed26b" }}
                 >
                   Sign Up / Sign In
                 </button>
+
               )}
             </div>
           </div>
@@ -330,14 +421,32 @@ export default function FullNavbar() {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAuth(false)} />
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col items-center mb-6 relative">
+                {/* Logo */}
+                <div className="w-28 h-28 mb-4">  {/* Increased from w-20 h-20 */}
+                  <Image
+                    src="/logoInstaFitCore.jpg"
+                    alt="InstaFitCore Logo"
+                    width={212}  // match the div size
+                    height={212} // match the div size
+                    className="object-contain rounded-full"
+                  />
+                </div>
+
+                {/* Heading */}
                 <h2 className="text-2xl font-bold text-gray-900">
                   {mode === "login" ? "Sign In" : mode === "register" ? "Sign Up" : "Reset Password"}
                 </h2>
-                <button onClick={() => setShowAuth(false)} className="text-gray-400 hover:text-gray-600">
+
+                {/* Close button */}
+                <button
+                  onClick={() => setShowAuth(false)}
+                  className="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-gray-600"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
+
 
               {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">{error}</div>}
               {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
@@ -380,10 +489,12 @@ export default function FullNavbar() {
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 rounded-lg font-semibold hover:from-green-600 hover:to-blue-600 disabled:opacity-50 transition-all duration-200"
+                    className="w-full py-2 rounded-lg font-semibold disabled:opacity-50 transition-all duration-200"
+                    style={{ backgroundColor: "#8ed26b", color: "white" }}
                   >
                     {authLoading ? "Signing In..." : "Sign In"}
                   </button>
+
                   <div className="mt-4 text-center">
                     <button
                       type="button"
@@ -417,7 +528,8 @@ export default function FullNavbar() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                       placeholder="Enter your full name"
                     />
-                  </div>                  <div className="mb-4">
+                  </div>
+                  <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -473,10 +585,12 @@ export default function FullNavbar() {
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 rounded-lg font-semibold hover:from-green-600 hover:to-blue-600 disabled:opacity-50 transition-all duration-200"
+                    className="w-full py-2 rounded-lg font-semibold disabled:opacity-50 transition-all duration-200"
+                    style={{ backgroundColor: "#8ed26b", color: "white" }}
                   >
                     {authLoading ? "Signing Up..." : "Sign Up"}
                   </button>
+
                   <div className="mt-4 text-center">
                     <span className="text-sm text-gray-600">Already have an account? </span>
                     <button
@@ -508,10 +622,12 @@ export default function FullNavbar() {
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 rounded-lg font-semibold hover:from-green-600 hover:to-blue-600 disabled:opacity-50 transition-all duration-200"
+                    className="w-full py-2 rounded-lg font-semibold disabled:opacity-50 transition-all duration-200"
+                    style={{ backgroundColor: "#8ed26b", color: "white" }}
                   >
                     {authLoading ? "Sending..." : "Send Reset Email"}
                   </button>
+
                   <div className="mt-4 text-center">
                     <button
                       type="button"
