@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase-client";
 import { Package, Clock, CheckCircle, MapPin, Wrench, Calendar, DollarSign, Home, Loader2, ListOrdered, ChevronRight, Hash, User, RefreshCw, Star, X } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 // --- Configuration ---
 const ACCENT_COLOR = "#8ed26b"; // Your desired green
@@ -47,7 +48,9 @@ type ReviewData = {
   rating: number;
   employeeName: string;
   serviceDetails: string;
+  images: string[];
 };
+
 
 // --- Helper Functions for Status Styling ---
 
@@ -58,9 +61,9 @@ const getStatusDetails = (status: string) => {
     case "Confirmed":
     case "Arriving Today":
     case "Work Done":
-      return { 
+      return {
         text: `text-[${DARK_ACCENT_TEXT}]`,
-        bg: `bg-[${LIGHT_ACCENT_BG}]`, 
+        bg: `bg-[${LIGHT_ACCENT_BG}]`,
         icon: status === "Confirmed" ? CheckCircle : (status === "Arriving Today" ? MapPin : Wrench),
         stepIndex: ["Pending", "Confirmed", "Arriving Today", "Work Done"].indexOf(status)
       };
@@ -86,36 +89,55 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ order, onClose, onSubmit }) =
   const [serviceDetails, setServiceDetails] = useState(""); // NEW STATE
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!employeeName.trim() || rating === 0) {
-        setError("Please provide a rating and the employee's name.");
-        return;
+      setError("Please provide a rating and the employee's name.");
+      return;
     }
-    
+
     setIsSubmitting(true);
-    
-    const success = await onSubmit({ 
-        rating, 
-        employeeName: employeeName.trim(), 
-        serviceDetails 
+
+    const success = await onSubmit({
+      rating,
+      employeeName: employeeName.trim(),
+      serviceDetails
     });
 
     setIsSubmitting(false);
 
     if (!success) {
-        // If onSubmit failed (e.g., Supabase error)
-        setError("Failed to submit review. Please check your connection and try again.");
+      // If onSubmit failed (e.g., Supabase error)
+      setError("Failed to submit review. Please check your connection and try again.");
     }
   };
+
+  const [images, setImages] = useState<File[]>([]);
+  const MAX_IMAGES = 4;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const selectedFiles = Array.from(e.target.files);
+    if (images.length + selectedFiles.length > MAX_IMAGES) {
+      alert(`You can only upload up to ${MAX_IMAGES} images.`);
+      return;
+    }
+    setImages((prev) => [...prev, ...selectedFiles]);
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 sm:p-8 transform transition-all duration-300 scale-100">
-        
+
         {/* Modal Header */}
         <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
           <h3 className={`text-2xl font-bold text-slate-800 flex items-center`}>
@@ -128,80 +150,110 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ order, onClose, onSubmit }) =
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-            
-            <p className="text-slate-600">How was the service for **{order.service_name} (Order #{order.id})**?</p>
 
-            {/* Star Rating */}
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 block">Rating</label>
-                <div className="flex space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                        <Star 
-                            key={star}
-                            onClick={() => setRating(star)}
-                            className={`w-10 h-10 cursor-pointer transition-colors duration-150 ${
-                                star <= rating ? 'fill-yellow-400 text-yellow-400' : 'fill-slate-200 text-slate-400'
-                            }`}
-                        />
-                    ))}
-                </div>
-            </div>
+          <p className="text-slate-600">How was the service for <strong>{order.service_name} (Order #{order.id})</strong>?</p>
 
-            {/* Employee Name Input */}
-            <div className="space-y-2">
-                <label htmlFor="employee" className="text-sm font-semibold text-slate-700 block">
-                    Employee Name (who provided the service)
-                </label>
-                <input
-                    id="employee"
-                    type="text"
-                    value={employeeName}
-                    onChange={(e) => setEmployeeName(e.target.value)}
-                    required
-                    placeholder="E.g., David or Technician 123"
-                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-offset-2 transition focus:ring-offset-0"
-                    style={{ borderColor: LIGHT_ACCENT_BG, focusRingColor: ACCENT_COLOR }}
+          {/* Star Rating */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700 block">Rating</label>
+            <div className="flex space-x-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className={`w-10 h-10 cursor-pointer transition-colors duration-150 ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'fill-slate-200 text-slate-400'
+                    }`}
                 />
+              ))}
             </div>
+          </div>
 
-            {/* Service Details Text Area (NEW) */}
-            <div className="space-y-2">
-                <label htmlFor="details" className="text-sm font-semibold text-slate-700 block">
-                    Tell us about the services done (Optional)
-                </label>
-                <textarea
-                    id="details"
-                    rows={3}
-                    value={serviceDetails}
-                    onChange={(e) => setServiceDetails(e.target.value)}
-                    placeholder="E.g., They were quick and fixed the issue perfectly. Very satisfied with the work."
-                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-offset-2 transition focus:ring-offset-0 resize-none"
-                    style={{ borderColor: LIGHT_ACCENT_BG, focusRingColor: ACCENT_COLOR }}
-                />
-            </div>
-
-            {error && (
-                <div className="text-red-600 bg-red-100 p-3 rounded-lg border border-red-300 font-medium">
-                    {error}
+          {/* Employee Name Input */}
+          <div className="space-y-2">
+            <label htmlFor="employee" className="text-sm font-semibold text-slate-700 block">
+              Employee Name (who provided the service)
+            </label>
+            <input
+              id="employee"
+              type="text"
+              value={employeeName}
+              onChange={(e) => setEmployeeName(e.target.value)}
+              required
+              placeholder="E.g., David or Technician 123"
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-offset-2 transition focus:ring-offset-0"
+              style={{ borderColor: LIGHT_ACCENT_BG, focusRingColor: ACCENT_COLOR }}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700 block">
+              Upload Images (Optional, max {MAX_IMAGES})
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageChange}
+              className="w-full"
+            />
+            <div className="flex flex-wrap mt-2 gap-2">
+              {images.map((file, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="preview"
+                    className="w-20 h-20 object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  >
+                    ×
+                  </button>
                 </div>
+              ))}
+            </div>
+          </div>
+
+
+          {/* Service Details Text Area (NEW) */}
+          <div className="space-y-2">
+            <label htmlFor="details" className="text-sm font-semibold text-slate-700 block">
+              Tell us about the services done (Optional)
+            </label>
+            <textarea
+              id="details"
+              rows={3}
+              value={serviceDetails}
+              onChange={(e) => setServiceDetails(e.target.value)}
+              placeholder="E.g., They were quick and fixed the issue perfectly. Very satisfied with the work."
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-offset-2 transition focus:ring-offset-0 resize-none"
+              style={{ borderColor: LIGHT_ACCENT_BG, focusRingColor: ACCENT_COLOR }}
+            />
+          </div>
+
+          {error && (
+            <div className="text-red-600 bg-red-100 p-3 rounded-lg border border-red-300 font-medium">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 rounded-lg text-white font-bold text-lg transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            style={{ backgroundColor: ACCENT_COLOR }}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin w-5 h-5 mr-2" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Review"
             )}
-            
-            {/* Submit Button */}
-            <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 rounded-lg text-white font-bold text-lg transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                style={{ backgroundColor: ACCENT_COLOR }}
-            >
-                {isSubmitting ? (
-                    <>
-                        <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                        Submitting...
-                    </>
-                ) : (
-                    "Submit Review"
-                )}
-            </button>
+          </button>
         </form>
       </div>
     </div>
@@ -218,19 +270,20 @@ export default function MyOrdersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrderToReview, setSelectedOrderToReview] = useState<Booking | null>(null);
   const [reviewedOrderIds, setReviewedOrderIds] = useState<number[]>([]); // NEW STATE to track reviewed orders
+const { toast } = useToast();
 
   // NEW: Function to fetch which orders the user has already reviewed
   const fetchReviewStatus = async (userId: string) => {
     const { data, error } = await supabase
-        .from('service_reviews')
-        .select('booking_id')
-        .eq('user_id', userId);
+      .from('service_reviews')
+      .select('booking_id')
+      .eq('user_id', userId);
 
     if (data) {
-        setReviewedOrderIds(data.map(review => review.booking_id));
+      setReviewedOrderIds(data.map(review => review.booking_id));
     }
     if (error) {
-        console.error("Error fetching review status:", error);
+      console.error("Error fetching review status:", error);
     }
   }
 
@@ -248,18 +301,18 @@ export default function MyOrdersPage() {
       .from("bookings")
       .select("*")
       .eq("user_id", user.id)
-      .order("id", { ascending: false }); 
+      .order("id", { ascending: false });
 
     if (!fetchError) {
       setOrders(bookings || []);
     }
-    
+
     // Fetch review status immediately after fetching orders
     await fetchReviewStatus(user.id);
-    
+
     setLoading(false);
   };
-  
+
   // Real-time subscription logic remains the same (important for updates!)
   useEffect(() => {
     const setup = async () => {
@@ -271,7 +324,7 @@ export default function MyOrdersPage() {
       const user = data.user;
 
       const subscription = supabase
-        .channel("bookings-updates-full") 
+        .channel("bookings-updates-full")
         .on(
           "postgres_changes",
           {
@@ -283,20 +336,20 @@ export default function MyOrdersPage() {
           (payload) => {
             const updatedOrder = payload.new as Booking;
             const deletedId = payload.old?.id;
-            
+
             setOrders((prev) => {
               if (payload.eventType === "INSERT") {
                 return [updatedOrder, ...prev];
               }
               if (payload.eventType === "UPDATE") {
-                return prev.map((order) => 
+                return prev.map((order) =>
                   order.id === updatedOrder.id ? updatedOrder : order
                 );
               }
               if (payload.eventType === "DELETE") {
                 return prev.filter((order) => order.id !== deletedId);
               }
-              return prev; 
+              return prev;
             });
           }
         )
@@ -308,7 +361,7 @@ export default function MyOrdersPage() {
     };
 
     setup();
-  }, []); 
+  }, []);
 
   // --- Handlers for Review Modal ---
 
@@ -328,37 +381,41 @@ export default function MyOrdersPage() {
 
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
+    if (!userId) return false;
 
-    if (!userId) {
-        console.error("User not authenticated.");
-        return false;
-    }
-    
-    // Insert into the new service_reviews table
     const { error } = await supabase
-        .from('service_reviews')
-        .insert({
-            booking_id: selectedOrderToReview.id,
-            user_id: userId,
-            rating: reviewData.rating,
-            employee_name: reviewData.employeeName,
-            service_details: reviewData.serviceDetails, // NEW FIELD
-        });
+      .from("service_reviews")
+      .insert({
+        booking_id: selectedOrderToReview.id,
+        user_id: userId,
+        rating: reviewData.rating,
+        employee_name: reviewData.employeeName,
+        service_details: reviewData.serviceDetails,
+        images: reviewData.images,
+      });
 
     if (error) {
-        console.error("Supabase Review Insert Error:", error);
-        alert(`Error submitting review: ${error.message}.`);
-        return false;
+      console.error("Supabase Review Insert Error:", error);
+      toast({
+        title: "Review Submission Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
     }
 
-    // Success: Update local state to immediately show the 'Review Submitted' message on the card
     setReviewedOrderIds(prev => [...prev, selectedOrderToReview.id]);
-    
-    // Close modal on success
     handleCloseReview();
-    alert(`Thank you for your review for Order #${selectedOrderToReview.id}!`);
+
+    // ✅ Show success toast
+    toast({
+      title: "Review Submitted Successfully!",
+      description: `Thank you for your review for Order #${selectedOrderToReview.id}.`,
+      variant: "success",
+    });
+
     return true;
-  }, [selectedOrderToReview]);
+  }, [selectedOrderToReview, toast]);
 
 
   // --- Order Card Component (Updated to use reviewedOrderIds) ---
@@ -368,7 +425,7 @@ export default function MyOrdersPage() {
     const totalSteps = 4;
     const isCompleted = order.status === "Work Done";
     // UPDATED: Check against the state array
-    const hasBeenReviewed = reviewedOrderIds.includes(order.id); 
+    const hasBeenReviewed = reviewedOrderIds.includes(order.id);
 
     const timelineSteps = [
       { label: "Booked & Pending", icon: Clock },
@@ -378,9 +435,9 @@ export default function MyOrdersPage() {
     ];
 
     return (
-      <div 
+      <div
         className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-100 transition-all duration-300 transform hover:shadow-2xl"
-        style={{ borderLeft: `6px solid ${ACCENT_COLOR}` }} 
+        style={{ borderLeft: `6px solid ${ACCENT_COLOR}` }}
       >
         {/* Header and Status */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-4 mb-6">
@@ -398,10 +455,10 @@ export default function MyOrdersPage() {
 
         {/* Details and Timeline Container */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           {/* Column 1 & 2: Key Details */}
           <div className="md:col-span-2 space-y-4">
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { label: "Date", value: formatDate(order.date), icon: Calendar },
@@ -429,7 +486,7 @@ export default function MyOrdersPage() {
                 ))}
               </div>
             </div>
-            
+
             <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
               <p className="font-bold text-sm text-slate-700 mb-2 flex items-center">
                 <Home className="w-4 h-4 mr-2 text-slate-500" /> Service Location:
@@ -437,18 +494,18 @@ export default function MyOrdersPage() {
               <p className="text-slate-600 leading-relaxed pl-6 text-sm">{order.address || "Address not provided."}</p>
             </div>
           </div>
-          
+
           {/* Column 3: Vertical Timeline & Review Button */}
           <div className="md:col-span-1 border-t md:border-t-0 md:border-l border-slate-200 pt-6 md:pt-0 md:pl-6">
-            
+
             <h3 className={`font-bold text-lg mb-4 text-[${DARK_ACCENT_TEXT}]`}>Order Progress</h3>
             <div className="relative mb-6">
               {/* Vertical Connector Line */}
-              <div 
+              <div
                 className={`absolute top-0 left-5 h-full w-0.5 bg-[${LIGHT_ACCENT_BG}]`}
-                style={{ height: `${(timelineSteps.length - 1) * 60 + 20}px`}}
+                style={{ height: `${(timelineSteps.length - 1) * 60 + 20}px` }}
               >
-                <div 
+                <div
                   className={`absolute top-0 w-full bg-[${ACCENT_COLOR}] transition-all duration-700`}
                   style={{ height: `${(stepIndex / (totalSteps - 1)) * 100}%` }}
                 />
@@ -460,12 +517,11 @@ export default function MyOrdersPage() {
 
                 return (
                   <div key={i} className="flex items-center mb-6 relative z-10">
-                    <div 
-                      className={`p-1.5 rounded-full border-2 transition-all duration-300 flex-shrink-0 ${
-                        active 
-                          ? `border-[${ACCENT_COLOR}] bg-white text-[${ACCENT_COLOR}] shadow-md`
-                          : "border-slate-300 bg-white text-slate-400"
-                      }`}
+                    <div
+                      className={`p-1.5 rounded-full border-2 transition-all duration-300 flex-shrink-0 ${active
+                        ? `border-[${ACCENT_COLOR}] bg-white text-[${ACCENT_COLOR}] shadow-md`
+                        : "border-slate-300 bg-white text-slate-400"
+                        }`}
                       style={{ marginLeft: '-1px' }}
                     >
                       <Icon className="w-4 h-4" />
@@ -485,51 +541,51 @@ export default function MyOrdersPage() {
 
             {/* NEW: Review Button / Review Submitted Display */}
             {isCompleted && !hasBeenReviewed && (
-                <button
-                    onClick={() => handleOpenReview(order)}
-                    className="w-full mt-4 py-3 flex items-center justify-center rounded-lg text-white font-bold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.01] transform"
-                    style={{ backgroundColor: ACCENT_COLOR }}
-                >
-                    <Star className="w-5 h-5 mr-2 fill-white" />
-                    Leave Review
-                </button>
+              <button
+                onClick={() => handleOpenReview(order)}
+                className="w-full mt-4 py-3 flex items-center justify-center rounded-lg text-white font-bold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.01] transform"
+                style={{ backgroundColor: ACCENT_COLOR }}
+              >
+                <Star className="w-5 h-5 mr-2 fill-white" />
+                Leave Review
+              </button>
             )}
             {isCompleted && hasBeenReviewed && (
-                <div className={`w-full mt-4 py-3 flex items-center justify-center rounded-lg text-[${DARK_ACCENT_TEXT}] font-bold bg-[${LIGHT_ACCENT_BG}] border border-dashed border-[${ACCENT_COLOR}]`}>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Review Submitted!
-                </div>
+              <div className={`w-full mt-4 py-3 flex items-center justify-center rounded-lg text-[${DARK_ACCENT_TEXT}] font-bold bg-[${LIGHT_ACCENT_BG}] border border-dashed border-[${ACCENT_COLOR}]`}>
+                <CheckCircle className="w-5 h-5 mr-2" />
+                Review Submitted!
+              </div>
             )}
-            
+
           </div>
         </div>
       </div>
     );
   };
-  
+
   // --- Main Render ---
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-12 sm:py-20">
       <div className="max-w-6xl mx-auto">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between bg-white p-6 rounded-xl shadow-lg mb-10 border-t-4" style={{ borderColor: ACCENT_COLOR }}>
-            <div className="flex items-center">
-                <ListOrdered className={`w-8 h-8 mr-4`} style={{ color: ACCENT_COLOR }} />
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                    My Service Bookings
-                </h1>
-            </div>
-            <button 
-                onClick={fetchOrders}
-                className={`flex items-center text-sm font-semibold text-slate-600 hover:text-[${DARK_ACCENT_TEXT}] transition-colors`}
-            >
-                <RefreshCw className="w-4 h-4 mr-1.5" />
-                Refresh List
-            </button>
+          <div className="flex items-center">
+            <ListOrdered className={`w-8 h-8 mr-4`} style={{ color: ACCENT_COLOR }} />
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              My Service Bookings
+            </h1>
+          </div>
+          <button
+            onClick={fetchOrders}
+            className={`flex items-center text-sm font-semibold text-slate-600 hover:text-[${DARK_ACCENT_TEXT}] transition-colors`}
+          >
+            <RefreshCw className="w-4 h-4 mr-1.5" />
+            Refresh List
+          </button>
         </div>
-        
+
         {loading ? (
           <div className="flex flex-col justify-center items-center py-20 bg-white rounded-xl shadow-lg">
             <Loader2 className={`animate-spin h-10 w-10 mb-4`} style={{ color: ACCENT_COLOR }} />
@@ -539,8 +595,8 @@ export default function MyOrdersPage() {
           <div className="text-center py-20 bg-white rounded-xl shadow-lg">
             <Package className="w-16 h-16 text-slate-400 mx-auto mb-6" />
             <p className="text-slate-600 text-xl font-medium">You haven't booked any services yet.</p>
-            <a 
-              href="/book-service" 
+            <a
+              href="/book-service"
               className={`inline-block mt-4 px-6 py-3 text-white font-semibold rounded-full shadow-lg transition duration-300 hover:bg-[#76c55d]`}
               style={{ backgroundColor: ACCENT_COLOR }}
             >
@@ -556,13 +612,13 @@ export default function MyOrdersPage() {
           </div>
         )}
       </div>
-      
+
       {/* Review Modal Render */}
       {isModalOpen && selectedOrderToReview && (
         <ReviewModal
-            order={selectedOrderToReview}
-            onClose={handleCloseReview}
-            onSubmit={handleReviewSubmit}
+          order={selectedOrderToReview}
+          onClose={handleCloseReview}
+          onSubmit={handleReviewSubmit}
         />
       )}
     </div>

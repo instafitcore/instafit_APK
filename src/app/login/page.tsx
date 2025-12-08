@@ -27,31 +27,36 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600">
-      <div className="bg-white shadow-2xl rounded-2xl p-10 w-full max-w-md flex flex-col items-center">
-        
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa] px-4">
+
+      <div className="bg-white shadow-xl rounded-3xl p-10 w-full max-w-md flex flex-col items-center">
+
         {/* Logo */}
-        <div className="mb-6">
-          <img
-            src="/logoInstaFitCore.jpg" // replace with your logo path
-            alt="Instafit Core"
-            className="w-60 h-50 object-contain"
-          />
-        </div>
+        <img
+          src="/insta.png"
+          alt="Instafit Core"
+          className="w-40 object-contain mb-6"
+        />
 
-        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Instafit Core Admin</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center text-gray-800 leading-tight">          Admin Login
+        </h2>
 
+        {/* Error */}
         {error && (
-          <p className="text-red-500 mb-4 text-center font-medium">{error}</p>
+          <p className="text-red-500 text-center font-medium mb-3 bg-red-50 border border-red-200 px-3 py-2 rounded-lg w-full">
+            {error}
+          </p>
         )}
 
+        {/* Inputs */}
         <div className="flex flex-col gap-4 w-full">
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            className="w-full p-3 rounded-lg bg-white border border-gray-300 
+                       focus:outline-none focus:ring-2 focus:ring-[#8ed26b]"
           />
 
           <input
@@ -59,20 +64,29 @@ export default function AdminLogin() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            className="w-full p-3 rounded-lg bg-white border border-gray-300 
+                       focus:outline-none focus:ring-2 focus:ring-[#8ed26b]"
           />
 
           <button
             onClick={handleLogin}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold shadow-md transition transform hover:-translate-y-1"
+            className="w-full bg-[#8ed26b] hover:bg-[#78c15d] text-white py-3 
+                       rounded-lg font-semibold shadow-md transition transform hover:-translate-y-1"
           >
             Login
           </button>
         </div>
 
+        {/* Footer */}
         <p className="mt-6 text-center text-gray-500 text-sm">
-          &copy; {new Date().getFullYear()} Instafit Core
+          © {new Date().getFullYear()} Instafit Core
         </p>
+
+        <div className="mt-2 text-gray-700 text-sm text-center">
+          <p><strong>Email:</strong> admin@example.com</p>
+          <p><strong>Password:</strong> admin123</p>
+        </div>
+
       </div>
     </div>
   );

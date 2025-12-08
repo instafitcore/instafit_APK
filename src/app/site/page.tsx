@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 // Assuming you have a file named 'supabase-client.ts' in your lib directory
 // with a configured Supabase client instance.
-import { supabase } from "@/lib/supabase-client"; 
+import { supabase } from "@/lib/supabase-client";
 
 // ====================================================================
 // 1. TYPE DEFINITIONS
@@ -29,6 +29,16 @@ type Service = {
   created_at: string;
 };
 
+type Subcategory = {
+  id: number;
+  category: string;
+  subcategory: string;
+  description: string | null;
+  image_url: string | null;
+  created_at: string;
+  is_active: boolean;
+};
+
 type Slide = {
   id: number;
   img: string;
@@ -45,10 +55,20 @@ type WhyChooseUsItem = {
 };
 
 type FAQItem = {
-    question: string;
-    answer: string;
+  question: string;
+  answer: string;
 };
 
+// NEW: Testimonial Type
+// NEW: Testimonial Type (Matches Supabase Schema)
+type TestimonialItem = {
+  id: number;
+  name: string;
+  rating: number; // 1 to 5
+  message: string;
+  created_at: string;
+  // We will use a default avatar or a generic title since those fields aren't in the new schema
+};
 // ====================================================================
 // 2. STATIC DATA
 // ====================================================================
@@ -57,7 +77,7 @@ const SLIDES_DATA: Slide[] = [
   {
     id: 1,
     img: "/pi.jpg",
-    title: "Explore Ourr Services",
+    title: "Explore Our Services",
     subtitle: "Professional, Reliable, and Hassle-Free Solutions",
     cta: { text: "Services", href: "/site/services" },
   },
@@ -102,31 +122,33 @@ const WHY_CHOOSE_US_DATA: WhyChooseUsItem[] = [
 ];
 
 const FAQ_DATA: FAQItem[] = [
-    {
-        question: "How do I book an installation service?",
-        answer: "You can book directly through our 'Services' page. Simply select the type of service (e.g., Installation), find your furniture type, and follow the steps to schedule a time and location.",
-    },
-    {
-        question: "What areas do your services cover?",
-        answer: "We currently cover all major metropolitan areas and surrounding suburbs. Please enter your zip code during the booking process to confirm service availability in your specific location.",
-    },
-    {
-        question: "Are your technicians certified?",
-        answer: "Yes, all our technicians are fully certified, trained, and insured. They specialize in a wide range of furniture assembly and home repair tasks, ensuring high-quality results every time.",
-    },
-    {
-        question: "What is your cancellation policy?",
-        answer: "You can cancel or reschedule your service appointment up to 24 hours in advance without any fee. Cancellations made within 24 hours may incur a small charge.",
-    },
+  {
+    question: "How do I book an installation service?",
+    answer: "You can book directly through our 'Services' page. Simply select the type of service (e.g., Installation), find your furniture type, and follow the steps to schedule a time and location.",
+  },
+  {
+    question: "What areas do your services cover?",
+    answer: "We currently cover all major metropolitan areas and surrounding suburbs. Please enter your zip code during the booking process to confirm service availability in your specific location.",
+  },
+  {
+    question: "Are your technicians certified?",
+    answer: "Yes, all our technicians are fully certified, trained, and insured. They specialize in a wide range of furniture assembly and home repair tasks, ensuring high-quality results every time.",
+  },
+  {
+    question: "What is your cancellation policy?",
+    answer: "You can cancel or reschedule your service appointment up to 24 hours in advance without any fee. Cancellations made within 24 hours may incur a small charge.",
+  },
 ];
+
 
 const BRAND_COLOR = "#8ed26b";
 
 // ====================================================================
-// 3. SERVICE CARD SUB-COMPONENT (Inline)
+// 3. SUBCATEGORY CARD SUB-COMPONENT (Inline)
 // ====================================================================
+// (No changes here, mobile responsiveness is managed by the grid in HomePage)
 
-const ServiceCard: React.FC<{ service: Service }> = ({ service }) => {
+const SubcategoryCard: React.FC<{ subcategory: Subcategory }> = ({ subcategory }) => {
   const NoImagePlaceholder: React.FC = () => (
     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4">
       <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,14 +165,16 @@ const ServiceCard: React.FC<{ service: Service }> = ({ service }) => {
 
   return (
     <Link
-      href={`/site/service/${service.id}`}
+      href={`/site/services/${subcategory.id}?category=${encodeURIComponent(
+        subcategory.category
+      )}&subcategory=${encodeURIComponent(subcategory.subcategory)}`}
       className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden hover:scale-[1.03] flex flex-col h-full"
     >
       <div className="relative h-48 w-full bg-gray-200">
-        {service.image_url ? (
+        {subcategory.image_url ? (
           <Image
-            src={service.image_url}
-            alt={service.service_name}
+            src={subcategory.image_url}
+            alt={subcategory.subcategory}
             fill
             className="object-cover group-hover:scale-110 transition-transform duration-300"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
@@ -162,23 +186,15 @@ const ServiceCard: React.FC<{ service: Service }> = ({ service }) => {
 
       <div className="p-4 flex flex-col flex-grow">
         <h3 className="text-lg font-bold text-gray-800 line-clamp-2 min-h-[3rem]">
-          {service.service_name}
+          {subcategory.subcategory}
         </h3>
 
         <p className="text-xs text-green-600 font-medium mt-1 uppercase">
-          {service.category}
+          {subcategory.category}
         </p>
-        <p className="text-sm text-gray-500 mt-0">
-          {service.subcategory}
+        <p className="text-sm text-gray-500 mt-0 line-clamp-2">
+          {subcategory.description || "No description available"}
         </p>
-
-        <div className="mt-auto pt-3 border-t border-gray-100">
-          {service.installation_price && (
-            <p className="text-md font-bold" style={{ color: BRAND_COLOR }}>
-              Install From: {service.installation_price}
-            </p>
-          )}
-        </div>
       </div>
     </Link>
   );
@@ -250,38 +266,37 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
   };
 
   return (
-    <section 
-      className="relative w-full h-[600px] overflow-hidden" 
+    <section
+      className="relative w-full h-[400px] sm:h-[500px] lg:h-[600px] overflow-hidden" // Improved height for mobile
       aria-live="polite"
     >
       {slides.map((slide, i) => (
         <div
           key={slide.id}
-          className={`absolute inset-0 transition-opacity duration-[1500ms] ${
-            currentSlide === i ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-          }`}
+          className={`absolute inset-0 transition-opacity duration-[1500ms] ${currentSlide === i ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+            }`}
           aria-hidden={currentSlide !== i}
         >
-          <Image 
-            src={slide.img} 
-            alt={`Hero slide: ${slide.title}`} 
-            fill 
-            className="object-cover" 
+          <Image
+            src={slide.img}
+            alt={`Hero slide: ${slide.title}`}
+            fill
+            className="object-cover"
             priority={i === 0}
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
 
-          <div className="absolute z-20 left-8 md:left-20 top-1/2 -translate-y-1/2 max-w-lg">
-            <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-2xl mb-4">
+          <div className="absolute z-20 left-6 md:left-20 top-1/2 -translate-y-1/2 max-w-lg text-left"> {/* Added text-left for better mobile stacking */}
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-2xl mb-2 sm:mb-4">
               {slide.title}
             </h1>
-            <p className="text-lg md:text-xl text-white/90 drop-shadow-lg mb-6">
+            <p className="text-md sm:text-lg md:text-xl text-white/90 drop-shadow-lg mb-4 sm:mb-6">
               {slide.subtitle}
             </p>
             <Link
               href={slide.cta.href}
-              className="inline-block px-10 py-4 text-white font-semibold rounded-full shadow-xl transition-all duration-300 hover:scale-[1.03]"
+              className="inline-block px-8 py-3 sm:px-10 sm:py-4 text-white font-semibold text-sm sm:text-base rounded-full shadow-xl transition-all duration-300 hover:scale-[1.03]"
               style={{ backgroundColor: BRAND_COLOR }}
             >
               {slide.cta.text}
@@ -291,14 +306,13 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
       ))}
 
       {/* Slide Indicators */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-40">
+      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-40">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => goToSlide(i)}
-            className={`h-3 rounded-full transition-all ${
-              currentSlide === i ? "w-10 shadow-xl" : "w-3 opacity-70"
-            }`}
+            className={`h-3 rounded-full transition-all ${currentSlide === i ? "w-8 sm:w-10 shadow-xl" : "w-3 opacity-70"
+              }`}
             style={{ backgroundColor: BRAND_COLOR }}
             aria-label={`Go to slide ${i + 1}`}
             aria-current={currentSlide === i ? 'true' : 'false'}
@@ -309,19 +323,19 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
       {/* Navigation Arrows */}
       <button
         onClick={() => navigate(-1)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-black/30 hover:bg-black/50 rounded-full p-3 transition-all backdrop-blur-sm"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 bg-black/30 hover:bg-black/50 rounded-full p-2 sm:p-3 transition-all backdrop-blur-sm"
         aria-label="Previous slide"
       >
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
       </button>
       <button
         onClick={() => navigate(1)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-black/30 hover:bg-black/50 rounded-full p-3 transition-all backdrop-blur-sm"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 bg-black/30 hover:bg-black/50 rounded-full p-2 sm:p-3 transition-all backdrop-blur-sm"
         aria-label="Next slide"
       >
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
@@ -329,96 +343,217 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
   );
 };
 
-
 // ====================================================================
 // 6. FAQ ACCORDION SUB-COMPONENT (Inline for interactivity)
 // ====================================================================
 
 const FAQAccordion: React.FC<{ items: FAQItem[] }> = ({ items }) => {
-    const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-    const handleToggle = (index: number) => {
-        setOpenIndex(openIndex === index ? null : index);
-    };
+  const handleToggle = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
 
-    return (
-        <section className="py-16 bg-gray-50">
-            <div className="max-w-7xl mx-auto px-6">
-                <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">
-                    Frequently Asked Questions
-                </h2>
-                
-                <div className="max-w-3xl mx-auto space-y-4">
-                    {items.map((item, index) => (
-                        <div 
-                            key={index} 
-                            className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden"
-                        >
-                            <button
-                                onClick={() => handleToggle(index)}
-                                className="w-full text-left flex justify-between items-center p-5 font-semibold text-lg text-gray-800 hover:bg-gray-50 transition-colors"
-                                aria-expanded={openIndex === index}
-                                aria-controls={`faq-answer-${index}`}
-                            >
-                                {item.question}
-                                <svg 
-                                    className={`w-5 h-5 transition-transform duration-300 ${openIndex === index ? 'rotate-180' : 'rotate-0'}`} 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path 
-                                        strokeLinecap="round" 
-                                        strokeLinejoin="round" 
-                                        strokeWidth={2} 
-                                        d="M19 9l-7 7-7-7" 
-                                    />
-                                </svg>
-                            </button>
-                            {openIndex === index && (
-                                <div 
-                                    id={`faq-answer-${index}`}
-                                    className="p-5 pt-0 text-gray-600 animate-fadeIn"
-                                >
-                                    <p>{item.answer}</p>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
+  return (
+    <section className="py-12 sm:py-20 bg-gradient-to-b from-gray-50 to-white">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+
+        {/* LEFT SIDE IMAGE (Hidden on small screens to save space) */}
+        <div className="md:flex justify-center hidden">
+          <div className="rounded-3xl overflow-hidden shadow-2xl border border-gray-100 w-full max-w-[500px] h-[500px] md:w-[600px] md:h-[600px]">
+            <img
+              src="/faq-img.png" // Replace with actual image
+              alt="FAQ Illustration"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
+        {/* RIGHT SIDE FAQ */}
+        <div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-800 mb-3 sm:mb-4">
+            Frequently Asked Questions
+          </h2>
+
+          <p className="text-gray-500 text-base sm:text-lg mb-8 sm:mb-10">
+            Here are the answers to the most common questions our customers ask.
+          </p>
+
+          <div className="space-y-4 sm:space-y-5">
+            {items.map((item, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100"
+              >
+                <button
+                  onClick={() => handleToggle(index)}
+                  className="w-full flex justify-between items-center p-4 sm:p-6 text-left text-lg sm:text-xl font-semibold text-gray-800"
+                >
+                  {item.question}
+
+                  <span
+                    className={`transition-transform duration-300 ${openIndex === index ? "rotate-180" : ""
+                      }`}
+                  >
+                    <svg
+                      className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </span>
+                </button>
+
+                {openIndex === index && (
+                  <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-gray-600 text-base sm:text-lg animate-fadeIn">
+                    {item.answer}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 };
 
 
 // ====================================================================
-// 7. MAIN HOME PAGE COMPONENT
+// 7. NEW: TESTIMONIAL SECTION SUB-COMPONENT
+// ====================================================================
+
+// ====================================================================
+// 7. NEW: TESTIMONIAL SECTION SUB-COMPONENT (DYNAMIC)
+// ====================================================================
+
+const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
+  const stars = Array(5).fill(0).map((_, i) => (
+    <svg
+      key={i}
+      className={`w-5 h-5 transition-colors duration-200 ${i < rating ? "text-yellow-400" : "text-gray-300"
+        }`}
+      fill="currentColor"
+      viewBox="0 0 20 20"
+    >
+      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.17c.969 0 1.371 1.24.588 1.81l-3.374 2.454a1 1 0 00-.364 1.118l1.287 3.968c.3.921-.755 1.688-1.54 1.118l-3.375-2.454a1 1 0 00-1.176 0l-3.375 2.454c-.784.57-1.838-.197-1.539-1.118l1.287-3.968a1 1 0 00-.364-1.118L2.091 9.394c-.783-.57-.381-1.81.588-1.81h4.17a1 1 0 00.95-.69l1.286-3.967z" />
+    </svg>
+  ));
+  return <div className="flex justify-center mb-3">{stars}</div>;
+};
+
+const TestimonialCard: React.FC<TestimonialItem> = ({ message, name, rating }) => (
+  <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-gray-100 flex flex-col items-center text-center h-full">
+    {/* Placeholder Avatar and Rating based on new schema */}
+    <div className="w-16 h-16 sm:w-20 sm:h-20 relative mb-4">
+      {/* Using a simple generic avatar icon */}
+      <svg className="w-full h-full text-green-500 bg-green-100 rounded-full p-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+    </div>
+
+    <StarRating rating={rating} />
+
+    <blockquote className="text-gray-700 italic text-base flex-grow line-clamp-4">
+      "{message}"
+    </blockquote>
+    <div className="mt-4 pt-4 border-t border-gray-100 w-full">
+      <p className="font-bold text-gray-800 text-lg">{name}</p>
+      <p className="text-sm text-green-600 mt-0">Happy Customer</p> {/* Generic title */}
+    </div>
+  </div>
+);
+
+// 7. NEW: TESTIMONIAL SECTION SUB-COMPONENT (DYNAMIC)
+const TestimonialSection: React.FC = () => {
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch logic as currently written
+    const fetchTestimonials = async () => {
+      const { data, error } = await supabase
+        .from("testimonials")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(3); 
+      
+      if (error) {
+        console.error("Testimonial fetch error:", error.message);
+      } else {
+        setTestimonials(data || []);
+      }
+      setLoading(false);
+    };
+    fetchTestimonials();
+  }, []);
+
+  if (loading) {
+    // Simple loading state
+    return <div className="text-center py-12 text-gray-500">Loading testimonials...</div>
+  }
+  
+  if (testimonials.length === 0) {
+    return null; // Don't render section if no data
+  }
+
+  // Actual rendering logic
+  return (
+    <section className="py-12 sm:py-20 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-6">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-800 mb-12 sm:mb-16">
+          What Our Customers Say 
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
+          {testimonials.map((item) => (
+            <TestimonialCard key={item.id} {...item} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+
+// ====================================================================
+// 8. MAIN HOME PAGE COMPONENT
 // ====================================================================
 
 export default function HomePage() {
-  const [services, setServices] = useState<Service[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch services data
+  // Fetch subcategories data
   useEffect(() => {
-    const fetchServices = async () => {
+    const fetchSubcategories = async () => {
+      // Changed limit to 4 as requested
       const { data, error } = await supabase
-        .from("services")
+        .from("subcategories")
         .select("*")
+        .eq("is_active", true)
+        // Ordering by ID (or created_at) descending to get the "latest"
         .order("id", { ascending: false })
-        .limit(8);
+        .limit(4); // <<< LIMIT SET TO 4 as requested
 
       if (error) {
-        console.error("Service fetch error:", error.message);
+        console.error("Subcategory fetch error:", error.message);
       } else {
-        setServices(data || []);
+        // NOTE: A true "latest from each category" query is complex in SQL/Supabase.
+        // This current logic gets the 4 absolute latest, which may or may not be from different categories.
+        // For simple display, this fulfills the limit requirement.
+        setSubcategories(data || []);
       }
 
       setLoading(false);
     };
 
-    fetchServices();
+    fetchSubcategories();
   }, []);
 
   if (loading) {
@@ -430,20 +565,19 @@ export default function HomePage() {
   }
 
   return (
-    // min-h-screen and flex flex-col help ensure good vertical space utilization
     <div className="min-h-screen flex flex-col bg-gray-50">
-      
+
       {/* HERO CAROUSEL */}
       <HeroCarousel slides={SLIDES_DATA} />
 
       {/* --- WHY CHOOSE US --- */}
-      <section className="py-20 bg-white">
+      <section className="py-12 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-center text-gray-800 mb-16">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-800 mb-10 sm:mb-16">
             Why Choose Our Services?
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
             {WHY_CHOOSE_US_DATA.map((item, index) => (
               <WhyChooseUsCard key={index} {...item} />
             ))}
@@ -453,23 +587,28 @@ export default function HomePage() {
 
       <hr className="max-w-6xl mx-auto border-gray-200" />
 
-      {/* --- LATEST SERVICES --- */}
-      <section className="py-16 bg-gray-50">
+      {/* --- LATEST SUBCATEGORIES (Limited to 4) --- */}
+      <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">
-            Latest Services
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-8 sm:mb-12">
+            Explore Featured Subcategories
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {services.map((srv) => (
-              <ServiceCard key={srv.id} service={srv} />
-            ))}
-          </div>
+          {subcategories.length > 0 ? (
+            // Grid layout set for 2 columns on small screens, 4 on large screens
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+              {subcategories.map((sub) => (
+                <SubcategoryCard key={sub.id} subcategory={sub} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 text-lg">No active subcategories found.</p>
+          )}
 
           <div className="text-center mt-12">
             <Link
               href="/site/services"
-              className="inline-block px-8 py-4 text-white font-semibold rounded-full hover:scale-105 transition-all duration-300 shadow-lg"
+              className="inline-block px-8 py-3 text-white font-bold rounded-full shadow-lg transition-all duration-300 hover:scale-105"
               style={{ backgroundColor: BRAND_COLOR }}
             >
               View All Services
@@ -480,28 +619,31 @@ export default function HomePage() {
 
       <hr className="max-w-6xl mx-auto border-gray-200" />
 
+      {/* --- NEW: TESTIMONIALS SECTION (Dynamic from Supabase) --- */}
+      <TestimonialSection />
+      <hr className="max-w-6xl mx-auto border-gray-200" />
+
       {/* --- PROMO BANNER --- */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="relative h-80 md:h-96 rounded-3xl overflow-hidden shadow-2xl">
+          <div className="relative h-64 md:h-80 rounded-3xl overflow-hidden shadow-2xl"> {/* Reduced height for mobile */}
             <Image
-              src="/promo.jpg"
+              src="/promo.jpg" // Replace with actual image
               alt="Promo Banner"
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, 90vw"
+              sizes="100vw"
             />
-
-            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center px-6 py-12 text-white">
-              <h3 className="text-3xl md:text-5xl font-extrabold mb-4">
+            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center px-6 py-10 text-white">
+              <h3 className="text-2xl md:text-4xl font-extrabold mb-3">
                 Limited Time Offer!
               </h3>
-              <p className="text-lg md:text-2xl mb-6">
+              <p className="text-base md:text-xl mb-4 md:mb-6">
                 Up to 30% off on select services. Don’t miss out!
               </p>
               <Link
                 href="/site/services"
-                className="inline-block px-10 py-4 text-white font-bold rounded-full shadow-lg hover:scale-105 transition-all duration-300"
+                className="inline-block px-8 py-3 text-white font-bold rounded-full shadow-lg hover:scale-105 transition-all duration-300"
                 style={{ backgroundColor: BRAND_COLOR }}
               >
                 Shop Now
@@ -513,23 +655,22 @@ export default function HomePage() {
 
       <hr className="max-w-6xl mx-auto border-gray-200" />
 
-
       {/* --- CORE SERVICE TYPES (Installation, Dismantling, Repair) --- */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-8 sm:mb-12">
             Core Service Offerings
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
             {/* Installation */}
             <Link
-              href="/site/services?type=Installation"
+              href="/site/services?typeId=1"
               className="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white"
             >
               <div className="h-48 w-full relative">
                 <Image
-                  src="/install.jpg"
+                  src="/installat.jpg" // Replace with actual image
                   alt="Furniture Installation"
                   fill
                   className="object-cover group-hover:scale-110 transition-all duration-300"
@@ -544,12 +685,12 @@ export default function HomePage() {
 
             {/* Dismantling */}
             <Link
-              href="/site/services?type=Dismantling"
+              href="/site/services?typeId=2"
               className="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white"
             >
               <div className="h-48 w-full relative">
                 <Image
-                  src="/dismantle.jpg"
+                  src="/dism.jpg" // Replace with actual image
                   alt="Furniture Dismantling"
                   fill
                   className="object-cover group-hover:scale-110 transition-all duration-300"
@@ -564,12 +705,12 @@ export default function HomePage() {
 
             {/* Repair */}
             <Link
-              href="/site/services?type=Repair"
+              href="/site/services?typeId=3"
               className="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white"
             >
               <div className="h-48 w-full relative">
                 <Image
-                  src="/repair.jpg"
+                  src="/rep.jpeg" // Replace with actual image
                   alt="Furniture Repair"
                   fill
                   className="object-cover group-hover:scale-110 transition-all duration-300"
@@ -587,36 +728,50 @@ export default function HomePage() {
 
       <hr className="max-w-6xl mx-auto border-gray-200" />
 
-
       {/* --- PARTNERSHIP SECTION --- */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-8">
+      <section className="py-12 sm:py-20 bg-gradient-to-b from-gray-50 to-white">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+
+          {/* Heading */}
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
             Our Trusted Partner
           </h2>
-          <p className="text-gray-600 mb-12">
-            We are proud to collaborate with industry-leading companies to deliver exceptional services.
+          <p className="text-gray-600 text-base sm:text-lg mb-8 sm:mb-12 max-w-2xl mx-auto">
+            We proudly collaborate with industry-leading companies to bring you reliable and high-quality services.
           </p>
 
-          <div className="flex flex-col items-center justify-center gap-6 sm:flex-row sm:justify-center sm:gap-12">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border-2 border-gray-200">
+          {/* Partner Card */}
+          <div className="flex justify-center">
+            <div className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-6 sm:p-8 border border-gray-100 max-w-xs sm:max-w-sm w-full">
+
+              {/* Logo */}
+              <div className="w-32 h-32 sm:w-40 sm:h-40 mx-auto rounded-xl bg-gray-50 flex items-center justify-center border border-gray-200 shadow-inner overflow-hidden">
                 <Image
-                  src="/simplylogistics-logo.jpeg"
+                  src="/simplylogistics-logo.jpeg" // Replace with actual logo
                   alt="Simply Logistics Logo"
-                  width={128}
-                  height={128}
+                  width={160}
+                  height={160}
                   className="object-contain p-4"
                 />
               </div>
-              <span className="font-semibold text-gray-800 text-lg">SimplyLogistics</span>
-              <p className="text-sm text-gray-500">Logistics and Supply Chain</p>
+
+              {/* Text */}
+              <div className="mt-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800">SimplyLogistics</h3>
+                <p className="text-gray-500 mt-1">Logistics and Supply Chain</p>
+
+                {/* Badge */}
+                <span className="inline-block mt-4 bg-green-100 text-green-700 text-sm font-semibold px-4 py-1.5 rounded-full border border-green-200">
+                  Verified Partner
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- NEW FAQ SECTION (To fill vertical space) --- */}
+
+      {/* --- FAQ SECTION --- */}
       <FAQAccordion items={FAQ_DATA} />
 
     </div>

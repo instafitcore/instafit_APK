@@ -1,11 +1,21 @@
+// FullNavbar.tsx (Combined Desktop + Mobile Navbar)
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase-client";
-import { User as UserIcon, Menu, X, Search, Mail, Lock, Eye, EyeOff, Heart, ShoppingCart } from "lucide-react";
+import {
+  User as UserIcon,
+  Menu,
+  X,
+  Search,
+  MapPin,
+  Heart,
+  ShoppingCart,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
+import AuthModal from "@/components/AuthModal";
 
 type Category = {
   id: number;
@@ -16,180 +26,103 @@ type Category = {
 type AuthMode = "login" | "register" | "forgot";
 
 export default function FullNavbar() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [search, setSearch] = useState("");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const pathname = usePathname();
-  const [cartCount, setCartCount] = useState(0);
+  // Shared states
+  const [user, setUser] = useState<any>(null);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
 
   const [showAuth, setShowAuth] = useState(false);
   const [mode, setMode] = useState<AuthMode>("login");
-  const [authLoading, setAuthLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+
+  const pathname = usePathname();
+
+  // Desktop specific
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [name, setName] = useState("");
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-
   const [isScrolled, setIsScrolled] = useState(false);
 
+  // Mobile specific
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  // Scroll shadow behaviour
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 80);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Fetch categories (desktop only)
   useEffect(() => {
     const fetchCategories = async () => {
-      setLoadingCategories(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("categories")
         .select("id, category, image_url")
         .eq("is_active", true)
         .order("id", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching categories:", error.message);
-        setCategories([]);
-      } else {
-        setCategories(data || []);
-      }
+      setCategories(data || []);
       setLoadingCategories(false);
     };
+
     fetchCategories();
   }, []);
 
+  // User + auth listener
   useEffect(() => {
-    let subscription: any;
     const init = async () => {
       const res = await supabase.auth.getUser();
       setUser(res.data.user ?? null);
-
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-      });
-      subscription = data?.subscription ?? data;
     };
     init();
-    return () => subscription?.unsubscribe?.();
+
+    const { data } = supabase.auth.onAuthStateChange((_e, session) =>
+      setUser(session?.user ?? null)
+    );
+
+    return () => data.subscription.unsubscribe();
   }, []);
 
-  // Fetch cart & wishlist items
+  // Fetch wishlist + cart counts
   useEffect(() => {
-    if (!user) {
-      setCartCount(0);
-      setWishlistCount(0);
-      return;
-    }
+    if (!user) return;
 
     const fetchCounts = async () => {
-      // Cart Count
-      const { count: cartTotal } = await supabase
-        .from("cart")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      setCartCount(cartTotal || 0);
-
-      // Wishlist Count
-      const { count: wishlistTotal } = await supabase
+      const wish = await supabase
         .from("wishlist")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
+      setWishlistCount(wish.count || 0);
 
-      setWishlistCount(wishlistTotal || 0);
+      const cart = await supabase
+        .from("cart")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setCartCount(cart.count || 0);
     };
 
     fetchCounts();
   }, [user]);
 
-  const clearAlerts = () => {
-    setMessage(null);
-    setError(null);
-  };
-
-  const handleLogin = async () => {
-    clearAlerts();
-    if (!email || !password) return setError("Please enter email and password");
-    setAuthLoading(true);
-    try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) setError(authError.message || "Login failed");
-      else setTimeout(() => setShowAuth(false), 700);
-    } catch (err: any) {
-      setError(err?.message || "Login error");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleRegister = async () => {
-    clearAlerts();
-    if (!name.trim()) return setError("Full name is required");
-    if (!email) return setError("Please enter an email");
-    if (!password || password.length < 6) return setError("Password must be at least 6 characters");
-    if (password !== confirm) return setError("Passwords do not match");
-
-    setAuthLoading(true);
-    try {
-      const { data, error: signError } = await supabase.auth.signUp({ email, password });
-      if (signError) setError(signError.message || "Signup failed");
-      else setTimeout(() => setShowAuth(false), 900);
-    } catch (err: any) {
-      setError(err?.message || "Signup error");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleForgot = async () => {
-    clearAlerts();
-    if (!forgotEmail) return setError("Enter your email to reset password");
-    setAuthLoading(true);
-    try {
-      const { data, error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail);
-      if (resetError) setError(resetError.message || "Failed to send reset email");
-      else {
-        setMessage("Password reset email sent");
-        setTimeout(() => {
-          setMode("login");
-          setForgotEmail("");
-        }, 1200);
-      }
-    } catch (err: any) {
-      setError(err?.message || "Reset error");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setShowProfileDropdown(false);
-    setUser(null);
   };
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 shadow-lg sticky top-0 z-50 transition-shadow duration-300">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      {/* ---------------------------- NAVBAR ---------------------------- */}
+      <header
+        className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-shadow duration-300 ${
+          isScrolled ? "shadow-md" : ""
+        }`}
+      >
+        {/* DESKTOP NAVBAR */}
+        <div className="hidden md:flex max-w-7xl mx-auto px-4 py-3 items-center gap-6">
 
-          {/* ⭐ UPDATED LOGO SECTION FOR BETTER ALIGNMENT AND BRANDING ⭐
-            
-            1. The outer Link uses 'flex items-center' for vertical alignment.
-            2. The Image component now uses the correct size to make the logo icon stand out.
-            3. The site name and tagline are explicitly added next to the image.
-          */}
+          {/* Logo */}
           <Link href="/site" className="flex items-center gap-3 shrink-0">
-            {/* Logo Image/Icon Holder */}
             <div className="w-14 h-14 shrink-0">
               <Image
                 src="/logoInstaFit.jpg"
@@ -199,91 +132,64 @@ export default function FullNavbar() {
                 className="w-full h-full object-contain"
               />
             </div>
-
-            {/* Text Branding */}
             <div className="leading-tight hidden sm:block">
-              <div className="text-xl font-bold" style={{ color: '#8ed26b' }}>INSTAFITCORE</div>
+              <div className="text-xl font-bold" style={{ color: "#8ed26b" }}>
+                INSTAFITCORE
+              </div>
               <div className="text-xs text-black">One Stop Solutions</div>
             </div>
           </Link>
 
-
-          {/* Search Bar */}
-          <div className="flex-1 max-w-md mx-4 hidden md:block"> {/* Hide search on small screens for better layout */}
+          {/* Search */}
+          <div className="flex-1 max-w-md mx-4 hidden lg:block">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="What are you looking for?"
-                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-[#8ed26b]"
               />
             </div>
           </div>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-6"> {/* Use lg:flex for nav links to save space */}
-            <Link href="/site" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Home
-            </Link>
-            <Link href="/site/services" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Services
-            </Link>
-            <Link href="/site/about" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              About
-            </Link>
-            <Link href="/site/contact" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Contact
-            </Link>
-            <Link href="/site/order-tracking" className="text-gray-700 font-medium hover:text-green-600 transition-colors duration-200">
-              Track
-            </Link>
+          <nav className="hidden lg:flex items-center gap-6">
+            <Link href="/site">Home</Link>
+            <Link href="/site/services">Services</Link>
+            <Link href="/site/about">About</Link>
+            <Link href="/site/contact">Contact</Link>
           </nav>
 
-          {/* Wishlist, Cart, Auth/Profile, and Mobile Menu */}
+          {/* Right Icons */}
           <div className="flex items-center gap-4 shrink-0">
-
-            {/* Conditional Block: Show Sign In button OR Icons/Profile */}
             {!user ? (
-              // Renders when NOT logged in
               <button
                 onClick={() => {
-                  clearAlerts();
                   setMode("login");
                   setShowAuth(true);
                 }}
-                className="hidden sm:block bg-gradient-to-r text-white px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 shadow-md whitespace-nowrap"
+                className="hidden sm:block px-4 py-2 rounded-full text-white font-semibold"
                 style={{ backgroundColor: "#8ed26b" }}
               >
                 Sign Up / Sign In
               </button>
-
             ) : (
-              // Renders when LOGGED IN: Wishlist, Cart, and Profile
               <div className="flex items-center gap-4">
 
-                {/* Wishlist - Only visible when logged in */}
-                <Link
-                  href="/site/wishlist"
-                  className="relative hover:scale-110 transition"
-                >
+                <Link href="/site/wishlist" className="relative">
                   <Heart className="w-6 h-6 text-gray-700" />
                   {wishlistCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">
                       {wishlistCount}
                     </span>
                   )}
                 </Link>
 
-                {/* Cart - Only visible when logged in */}
-                <Link
-                  href="/site/cart"
-                  className="relative hover:scale-110 transition"
-                >
+                <Link href="/site/cart" className="relative">
                   <ShoppingCart className="w-6 h-6 text-gray-700" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 rounded-full">
                       {cartCount}
                     </span>
                   )}
@@ -292,94 +198,178 @@ export default function FullNavbar() {
                 {/* Profile Dropdown */}
                 <div className="relative">
                   <button
-                    onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                    className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm"
-                    title="Profile"
+                    onClick={() =>
+                      setShowProfileDropdown(!showProfileDropdown)
+                    }
+                    className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center"
                   >
-                    <UserIcon className="w-5 h-5 text-gray-700" />
+                    <UserIcon className="w-5 h-5" />
                   </button>
+
                   {showProfileDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 animate-in slide-in-from-top-2">
+                    <div className="absolute right-0 mt-2 w-48 bg-white border shadow-xl rounded-lg">
                       <Link
                         href="/site/profile"
+                        className="flex px-4 py-3 gap-2"
                         onClick={() => setShowProfileDropdown(false)}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <UserIcon className="w-4 h-4" /> Profile
+                        <UserIcon className="w-4 h-4 text-green-600" />
+                        Profile
                       </Link>
+
+                      <Link
+                        href="/site/order-tracking"
+                        className="flex px-4 py-3 gap-2"
+                        onClick={() => setShowProfileDropdown(false)}
+                      >
+                        <MapPin className="w-4 h-4 text-green-600" />
+                        Track Order
+                      </Link>
+
                       <button
                         onClick={handleSignOut}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
+                        className="flex w-full px-4 py-3 gap-2"
                       >
-                        <X className="w-4 h-4" /> Sign Out
+                        <X className="w-4 h-4 text-green-600" />
+                        Sign Out
                       </button>
                     </div>
                   )}
                 </div>
               </div>
             )}
-
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200 shadow-inner">
-            <div className="px-4 py-4 flex flex-col gap-3">
-              {/* Mobile Search */}
-              <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-              <Link href="/site" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
-                Home
-              </Link>
-              <Link href="/site/services" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
-                Our Services
-              </Link>
-              <Link href="/site/about" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
-                About Us
-              </Link>
-              <Link href="/site/contact" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
-                Contact Us
-              </Link>
-              <Link href="/site/order-tracking" className="py-2 text-gray-700 hover:text-green-600" onClick={() => setMobileOpen(false)}>
-                Order Tracking
-              </Link>
-              {!user && (
-                <button
-                  onClick={() => {
-                    clearAlerts();
-                    setMode("login");
-                    setShowAuth(true);
-                    setMobileOpen(false);
-                  }}
-                  className="mt-2 py-3 text-white rounded-full font-semibold transition-all duration-200"
-                  style={{ backgroundColor: "#8ed26b" }}
-                >
-                  Sign Up / Sign In
-                </button>
+        {/* ------------------ MOBILE NAVBAR ------------------ */}
+<div className="flex md:hidden items-center justify-between px-4 py-3 bg-white border-b shadow-sm sticky top-0 z-50">
 
-              )}
-            </div>
-          </div>
+  {/* LOGO */}
+  <Link href="/site" className="flex items-center gap-2">
+    <div className="w-12 h-12 relative">
+      <Image
+        src="/logoInstaFit.jpg"
+        alt="InstaFitCore Logo"
+        fill
+        className="object-contain"
+      />
+    </div>
+    <span className="font-bold text-lg" style={{ color: "#8ed26b" }}>
+      INSTAFITCORE
+    </span>
+  </Link>
+
+  {/* RIGHT ICONS */}
+  <div className="flex items-center gap-4">
+
+    {/* Wishlist */}
+    {user && (
+      <Link href="/site/wishlist" className="relative p-2 rounded-full hover:bg-gray-100 transition">
+        <Heart className="w-6 h-6 text-gray-700" />
+        {wishlistCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+            {wishlistCount}
+          </span>
+        )}
+      </Link>
+    )}
+
+    {/* Cart */}
+    {user && (
+      <Link href="/site/cart" className="relative p-2 rounded-full hover:bg-gray-100 transition">
+        <ShoppingCart className="w-6 h-6 text-gray-700" />
+        {cartCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+            {cartCount}
+          </span>
+        )}
+      </Link>
+    )}
+
+    {/* Mobile Menu Button */}
+    <button
+      onClick={() => setMobileOpen(true)}
+      className="p-2 rounded-full hover:bg-gray-100 transition"
+      aria-label="Open menu"
+    >
+      <Menu className="w-6 h-6 text-gray-700" />
+    </button>
+  </div>
+</div>
+
+
+        {/* MOBILE DRAWER */}
+        {mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            className="fixed inset-0 bg-black/40 z-40"
+          />
         )}
 
-        {/* Categories - Only on Home Page */}
-        {pathname === "/site" && (
+        <div
+          className={`fixed top-0 right-0 h-full w-3/4 bg-white z-50 shadow-xl transition-transform duration-300 ${
+            mobileOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          {/* Drawer Header */}
+          <div className="flex justify-between px-4 py-4 border-b">
+            <span className="text-lg font-semibold">Menu</span>
+            <button onClick={() => setMobileOpen(false)}>
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="p-4">
+            <div className="flex items-center border rounded-lg px-3 py-2 gap-2">
+              <Search className="w-5 h-5 text-gray-400" />
+              <input
+                placeholder="Search here..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full outline-none text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Drawer Links */}
+          <nav className="px-4 flex flex-col gap-3">
+            <Link href="/site" onClick={() => setMobileOpen(false)}>Home</Link>
+            <Link href="/site/services" onClick={() => setMobileOpen(false)}>Our Services</Link>
+            <Link href="/site/about" onClick={() => setMobileOpen(false)}>About Us</Link>
+            <Link href="/site/contact" onClick={() => setMobileOpen(false)}>Contact Us</Link>
+            <Link href="/site/order-tracking" onClick={() => setMobileOpen(false)}>Order Tracking</Link>
+          </nav>
+
+          {/* Auth Button */}
+          {!user && (
+            <div className="px-4 mt-6">
+              <button
+                onClick={() => {
+                  setMode("login");
+                  setShowAuth(true);
+                  setMobileOpen(false);
+                }}
+                className="w-full py-3 rounded-full font-semibold text-white"
+                style={{ backgroundColor: "#8ed26b" }}
+              >
+                Sign Up / Sign In
+              </button>
+            </div>
+          )}
+
+          {/* Bottom Icons */}
+          {user && (
+            <div className="mt-8 px-6 flex justify-between border-t pt-4">
+              <Link href="/site/profile"><UserIcon /></Link>
+              <Link href="/site/order-tracking"><MapPin /></Link>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Category carousel only on homepage */}
+       {pathname === "/site" && (
           <div className="bg-gray-50 border-t border-gray-200">
             <div className="max-w-7xl mx-auto px-4 py-6 overflow-x-auto">
               <div className="flex gap-12 justify-center min-w-max">
@@ -413,236 +403,14 @@ export default function FullNavbar() {
             </div>
           </div>
         )}
-      </header>
 
       {/* Auth Modal */}
-      {showAuth && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAuth(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div className="p-6">
-              <div className="flex flex-col items-center mb-6 relative">
-                {/* Logo */}
-                <div className="w-28 h-28 mb-4">  {/* Increased from w-20 h-20 */}
-                  <Image
-                    src="/logoInstaFitCore.jpg"
-                    alt="InstaFitCore Logo"
-                    width={212}  // match the div size
-                    height={212} // match the div size
-                    className="object-contain rounded-full"
-                  />
-                </div>
-
-                {/* Heading */}
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {mode === "login" ? "Sign In" : mode === "register" ? "Sign Up" : "Reset Password"}
-                </h2>
-
-                {/* Close button */}
-                <button
-                  onClick={() => setShowAuth(false)}
-                  className="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-
-              {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">{error}</div>}
-              {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
-
-              {mode === "login" && (
-                <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        placeholder="Enter your email"
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        placeholder="Enter your password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full py-2 rounded-lg font-semibold disabled:opacity-50 transition-all duration-200"
-                    style={{ backgroundColor: "#8ed26b", color: "white" }}
-                  >
-                    {authLoading ? "Signing In..." : "Sign In"}
-                  </button>
-
-                  <div className="mt-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() => { setMode("forgot"); clearAlerts(); }}
-                      className="text-sm text-green-600 hover:underline"
-                    >
-                      Forgot Password?
-                    </button>
-                  </div>
-                  <div className="mt-2 text-center">
-                    <span className="text-sm text-gray-600">Don't have an account? </span>
-                    <button
-                      type="button"
-                      onClick={() => { setMode("register"); clearAlerts(); }}
-                      className="text-sm text-green-600 hover:underline"
-                    >
-                      Sign Up
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {mode === "register" && (
-                <form onSubmit={(e) => { e.preventDefault(); handleRegister(); }}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        placeholder="Enter your email"
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        placeholder="Create a password (min 6 characters)"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={confirm}
-                        onChange={(e) => setConfirm(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        placeholder="Confirm your password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full py-2 rounded-lg font-semibold disabled:opacity-50 transition-all duration-200"
-                    style={{ backgroundColor: "#8ed26b", color: "white" }}
-                  >
-                    {authLoading ? "Signing Up..." : "Sign Up"}
-                  </button>
-
-                  <div className="mt-4 text-center">
-                    <span className="text-sm text-gray-600">Already have an account? </span>
-                    <button
-                      type="button"
-                      onClick={() => { setMode("login"); clearAlerts(); }}
-                      className="text-sm text-green-600 hover:underline"
-                    >
-                      Sign In
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {mode === "forgot" && (
-                <form onSubmit={(e) => { e.preventDefault(); handleForgot(); }}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="email"
-                        value={forgotEmail}
-                        onChange={(e) => setForgotEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                        placeholder="Enter your email to reset password"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full py-2 rounded-lg font-semibold disabled:opacity-50 transition-all duration-200"
-                    style={{ backgroundColor: "#8ed26b", color: "white" }}
-                  >
-                    {authLoading ? "Sending..." : "Send Reset Email"}
-                  </button>
-
-                  <div className="mt-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() => { setMode("login"); clearAlerts(); }}
-                      className="text-sm text-green-600 hover:underline"
-                    >
-                      Back to Sign In
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <AuthModal
+        showAuth={showAuth}
+        setShowAuth={setShowAuth}
+        mode={mode}
+        setMode={setMode}
+      />
     </>
   );
 }

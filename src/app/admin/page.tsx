@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase-client";
-import { Layers, List, Wrench, BookOpenCheck } from "lucide-react";
+import {
+  Layers,
+  List,
+  Wrench,
+  BookOpenCheck,
+  Star,
+  RefreshCw,
+} from "lucide-react";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -10,24 +17,26 @@ export default function AdminDashboard() {
     totalSubcategories: 0,
     totalServices: 0,
     totalBookings: 0,
+    totalReviews: 0,
   });
 
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch all counts in parallel
       const [
         { count: categoryCount },
         { count: subcategoryCount },
         { count: serviceCount },
         { count: bookingCount },
+        { count: reviewCount },
         { data: recent },
       ] = await Promise.all([
         supabase.from("categories").select("*", { count: "exact" }),
         supabase.from("subcategories").select("*", { count: "exact" }),
         supabase.from("services").select("*", { count: "exact" }),
         supabase.from("bookings").select("*", { count: "exact" }),
+        supabase.from("service_reviews").select("*", { count: "exact" }),
         supabase
           .from("bookings")
           .select("*")
@@ -40,6 +49,7 @@ export default function AdminDashboard() {
         totalSubcategories: subcategoryCount || 0,
         totalServices: serviceCount || 0,
         totalBookings: bookingCount || 0,
+        totalReviews: reviewCount || 0,
       });
 
       setRecentBookings(recent || []);
@@ -52,111 +62,108 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
-  const cardClass =
-    "p-7 bg-white shadow-lg rounded-3xl border border-gray-100 hover:shadow-2xl hover:-translate-y-1 transition-all";
-
-  const iconWrapClass =
-    "w-16 h-16 flex items-center justify-center rounded-2xl text-white text-2xl shadow-md";
-
   return (
-    <div className="space-y-10 p-6">
-      {/* Title */}
-      <h1 className="text-5xl font-extrabold mb-2 tracking-tight text-gray-900">
-        Dashboard
-      </h1>
-      <p className="text-gray-500 text-lg">Welcome back! Here's your platform overview.</p>
+    <div className="bg-[#f5f7fa] min-h-screen p-8 space-y-12">
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-6">
-        <div className={cardClass}>
-          <div className="flex items-center gap-5">
-            <div className={`${iconWrapClass} bg-gradient-to-br from-blue-400 to-blue-600`}>
-              <Layers size={30} />
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Categories</p>
-              <p className="text-4xl font-bold text-gray-900">{stats.totalCategories}</p>
-            </div>
-          </div>
+      {/* HEADER CARD */}
+      <div className="bg-white backdrop-blur-xl shadow-xl p-8 rounded-3xl border border-gray-100 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-500 mt-1 text-lg">
+            Welcome back! Here is your platform summary.
+          </p>
         </div>
 
-        <div className={cardClass}>
-          <div className="flex items-center gap-5">
-            <div className={`${iconWrapClass} bg-gradient-to-br from-purple-400 to-purple-600`}>
-              <List size={30} />
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Subcategories</p>
-              <p className="text-4xl font-bold text-gray-900">{stats.totalSubcategories}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className={cardClass}>
-          <div className="flex items-center gap-5">
-            <div className={`${iconWrapClass} bg-gradient-to-br from-orange-400 to-orange-600`}>
-              <Wrench size={30} />
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Services</p>
-              <p className="text-4xl font-bold text-gray-900">{stats.totalServices}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className={cardClass}>
-          <div className="flex items-center gap-5">
-            <div className={`${iconWrapClass} bg-gradient-to-br from-green-400 to-green-600`}>
-              <BookOpenCheck size={30} />
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Total Bookings</p>
-              <p className="text-4xl font-bold text-gray-900">{stats.totalBookings}</p>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={fetchDashboardData}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl 
+          bg-[#e8f5e1] text-[#4b9b3d] hover:bg-[#d4edce] font-semibold transition"
+        >
+          <RefreshCw size={18} />
+          Refresh
+        </button>
       </div>
 
-      {/* Recent Bookings */}
-      <div className="bg-white shadow-lg rounded-3xl p-8 border border-gray-100 mt-8">
-        <h2 className="text-3xl font-bold mb-6 text-gray-900">Recent Bookings</h2>
+      {/* STAT CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <StatCard
+          title="Categories"
+          value={stats.totalCategories}
+          icon={<Layers size={28} />}
+          gradient="from-blue-500 to-blue-700"
+        />
+        <StatCard
+          title="Subcategories"
+          value={stats.totalSubcategories}
+          icon={<List size={28} />}
+          gradient="from-purple-500 to-purple-700"
+        />
+        <StatCard
+          title="Services"
+          value={stats.totalServices}
+          icon={<Wrench size={28} />}
+          gradient="from-orange-400 to-orange-600"
+        />
+        <StatCard
+          title="Bookings"
+          value={stats.totalBookings}
+          icon={<BookOpenCheck size={28} />}
+          gradient="from-green-500 to-green-700"
+        />
+        <StatCard
+          title="Reviews"
+          value={stats.totalReviews}
+          icon={<Star size={28} />}
+          gradient="from-yellow-400 to-yellow-600"
+        />
+      </div>
 
-        <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-md">
-          <table className="w-full border-collapse">
-            <thead className="bg-gray-50 text-gray-700">
+      {/* RECENT BOOKINGS */}
+      <div className="bg-white shadow-xl rounded-3xl p-10 border border-gray-100">
+        <h2 className="text-3xl font-bold text-gray-900 mb-6">
+          Recent Bookings
+        </h2>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="bg-gray-100 text-gray-700 text-sm border-b">
               <tr>
-                <th className="p-4 text-sm font-semibold">Customer</th>
-                <th className="p-4 text-sm font-semibold">Service</th>
-                <th className="p-4 text-sm font-semibold">Date</th>
-                <th className="p-4 text-sm font-semibold">Status</th>
+                <th className="p-4 text-left">Customer</th>
+                <th className="p-4 text-left">Service</th>
+                <th className="p-4 text-left">Date</th>
+                <th className="p-4 text-left">Status</th>
+                <th className="p-4 text-left">Price</th>
               </tr>
             </thead>
 
-            <tbody className="text-gray-700 bg-white">
+            <tbody className="text-gray-700">
               {recentBookings.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-6 text-center text-gray-500 font-medium">
+                  <td
+                    colSpan={5}
+                    className="p-6 text-center text-gray-500 font-medium"
+                  >
                     No recent bookings found.
                   </td>
                 </tr>
               )}
 
-              {recentBookings.map((b: any) => (
-                <tr key={b.id} className="border-t hover:bg-gray-50 transition">
-                  <td className="p-4 flex items-center gap-2">
-                    <img
-                      src={b.customer_image || "/default-user.png"}
-                      alt={b.customer_name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    {b.customer_name}
+              {recentBookings.map((b) => (
+                <tr
+                  key={b.id}
+                  className="border-b hover:bg-gray-50 transition"
+                >
+                  <td className="p-4">{b.customer_name}</td>
+                  <td className="p-4">{b.service_name}</td>
+                  <td className="p-4">
+                    {new Date(b.date).toLocaleDateString()}
                   </td>
-                  <td className="p-4">{b.service_type}</td>
-                  <td className="p-4">{new Date(b.date).toLocaleDateString()}</td>
                   <td className="p-4">
                     <span
                       className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                        b.status === "Completed"
+                        b.status === "Work Done" || b.status === "Completed"
                           ? "bg-green-100 text-green-700"
                           : "bg-yellow-100 text-yellow-700"
                       }`}
@@ -164,10 +171,34 @@ export default function AdminDashboard() {
                       {b.status}
                     </span>
                   </td>
+                  <td className="p-4">₹{b.total_price}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/*-----------------------
+      STAT CARD
+------------------------*/
+function StatCard({ title, value, icon, gradient }) {
+  return (
+    <div className="p-7 bg-white rounded-3xl shadow-lg border border-gray-100 hover:shadow-2xl hover:-translate-y-1 transition-all">
+      <div className="flex items-center gap-5">
+        <div
+          className={`w-16 h-16 flex items-center justify-center rounded-xl text-white shadow-md bg-gradient-to-br ${gradient}`}
+        >
+          {icon}
+        </div>
+        <div>
+          <p className="text-gray-500 text-sm">{title}</p>
+          <p className="text-4xl font-extrabold text-gray-900 leading-tight">
+            {value}
+          </p>
         </div>
       </div>
     </div>

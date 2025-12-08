@@ -89,25 +89,25 @@ export default function BookingsPage() {
     // Filter/Search Logic
     useEffect(() => {
         let results = bookings;
-        
+
         if (search.trim() !== "") {
-          results = results.filter(
-            (b) =>
-              b.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-              b.service_name.toLowerCase().includes(search.toLowerCase())
-          );
+            results = results.filter(
+                (b) =>
+                    b.customer_name.toLowerCase().includes(search.toLowerCase()) ||
+                    b.service_name.toLowerCase().includes(search.toLowerCase())
+            );
         }
 
         if (statusFilter !== "All Status") {
-          results = results.filter((b) => b.status === statusFilter);
+            results = results.filter((b) => b.status === statusFilter);
         }
 
         if (paymentFilter !== "All Payment Status") {
-          results = results.filter((b) => b.payment_status === paymentFilter);
+            results = results.filter((b) => b.payment_status === paymentFilter);
         }
 
         if (serviceTypeFilter !== "All Service Types") {
-          results = results.filter((b) => b.service_types.includes(serviceTypeFilter));
+            results = results.filter((b) => b.service_types.includes(serviceTypeFilter));
         }
 
         setFiltered(results);
@@ -198,7 +198,7 @@ export default function BookingsPage() {
     const isStatusDisabled = (currentStatus: string, option: string): boolean => {
         const currentIndex = STATUS_OPTIONS.indexOf(currentStatus);
         const optionIndex = STATUS_OPTIONS.indexOf(option);
-        
+
         // Disable any option whose index is less than the current status index (i.e., previous steps)
         return optionIndex < currentIndex;
     };
@@ -209,9 +209,17 @@ export default function BookingsPage() {
                 Booking Management Dashboard
             </h1>
 
+
             {/* --- FILTER CARD --- */}
             <div className="bg-white shadow-lg rounded-xl p-6 border border-gray-100 mb-8">
-                <h2 className="text-xl font-semibold mb-4 text-gray-700">Filter & Search</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-700">
+                        Filter & Search
+                    </h2>
+                    <div className="text-sm text-gray-600">
+                        Total Bookings: {loading ? "..." : bookings.length}
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                     {/* Search */}
@@ -260,7 +268,7 @@ export default function BookingsPage() {
                     </select>
                 </div>
             </div>
-            
+
             <hr className="my-6 border-gray-200" />
 
             {/* --- TABLE --- */}
@@ -349,78 +357,80 @@ export default function BookingsPage() {
 
             {/* --- EMPLOYEE ASSIGNMENT MODAL --- */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-8 transform transition-all scale-100 ease-out duration-300">
-                        
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 transform transition-all scale-100 ease-out duration-300">
+
+                        {/* Header */}
                         <div className="flex justify-between items-start border-b pb-4 mb-6">
-                            <h3 className="text-2xl font-bold text-blue-700 flex items-center">
-                                <User className="w-6 h-6 mr-2" /> Assign Employee & Confirm
+                            <h3 className="text-2xl font-bold text-gray-800 flex items-center">
+                                <User className="w-6 h-6 mr-2 text-[#8ed26b]" /> Assign Employee & Confirm
                             </h3>
-                            <button 
-                                onClick={() => setIsModalOpen(false)} 
-                                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
                                 aria-label="Close modal"
                             >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
 
-                        <form onSubmit={assignEmployeeAndProceed}>
+                        {/* Form */}
+                        <form onSubmit={assignEmployeeAndProceed} className="space-y-5">
                             <p className="text-gray-600 mb-5">
-                                Enter the service professional's details to confirm that they are **Arriving Today** for Booking ID: **{selectedBookingId}**.
+                                Enter the service professional's details to confirm that they are <strong>Arriving Today</strong> for Booking ID: <strong>{selectedBookingId}</strong>.
                             </p>
 
-                            <div className="space-y-5">
-                                {/* Employee Name Input */}
-                                <div>
-                                    <label htmlFor="employeeName" className="block text-sm font-semibold text-gray-700 mb-1">
-                                        Employee Name <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        id="employeeName"
-                                        type="text"
-                                        value={employeeName}
-                                        onChange={(e) => setEmployeeName(e.target.value)}
-                                        placeholder="e.g., Jane Smith"
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Employee Phone Input */}
-                                <div>
-                                    <label htmlFor="employeePhone" className="block text-sm font-semibold text-gray-700 mb-1">
-                                        Employee Phone Number <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        id="employeePhone"
-                                        type="tel" // Use tel for phone number input
-                                        value={employeePhone}
-                                        onChange={(e) => setEmployeePhone(e.target.value)}
-                                        placeholder="e.g., 9876543210"
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                                        required
-                                    />
-                                </div>
+                            {/* Employee Name Input */}
+                            <div>
+                                <label htmlFor="employeeName" className="block text-sm font-semibold text-gray-700 mb-1">
+                                    Employee Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    id="employeeName"
+                                    type="text"
+                                    value={employeeName}
+                                    onChange={(e) => setEmployeeName(e.target.value)}
+                                    placeholder="e.g., Jane Smith"
+                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8ed26b] focus:border-[#8ed26b] transition-shadow"
+                                    required
+                                />
                             </div>
-                            
+
+                            {/* Employee Phone Input */}
+                            <div>
+                                <label htmlFor="employeePhone" className="block text-sm font-semibold text-gray-700 mb-1">
+                                    Employee Phone Number <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    id="employeePhone"
+                                    type="tel"
+                                    value={employeePhone}
+                                    onChange={(e) => setEmployeePhone(e.target.value)}
+                                    placeholder="e.g., 9876543210"
+                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8ed26b] focus:border-[#8ed26b] transition-shadow"
+                                    required
+                                />
+                            </div>
+
+                            {/* Error Message */}
                             {modalError && (
-                                <p className="mt-4 text-sm font-medium text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg flex items-center">
+                                <p className="mt-4 text-sm font-medium text-red-600 bg-red-50 border border-red-200 p-3 rounded-xl flex items-center">
                                     <X className="w-4 h-4 mr-2" /> {modalError}
                                 </p>
                             )}
 
+                            {/* Buttons */}
                             <div className="mt-8 flex justify-end space-x-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                                    className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                    className="px-6 py-3 bg-[#8ed26b] text-white font-medium rounded-xl shadow-md hover:bg-[#6ebb53] transition-colors disabled:opacity-50"
                                 >
                                     Confirm & Set Status to "{newStatus}"
                                 </button>
@@ -429,6 +439,7 @@ export default function BookingsPage() {
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

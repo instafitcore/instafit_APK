@@ -2,45 +2,94 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-// Importing specific icons for better visual design
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Star } from "lucide-react";
+import { supabase } from "@/lib/supabase-client";
 
 // --- CUSTOM COLOR CONSTANTS ---
-// Hex: #8ed26b (Bright Green)
 const ACCENT_COLOR = "text-[#8ed26b]";
 const BG_ACCENT = "bg-[#8ed26b]";
-const HOVER_ACCENT = "hover:bg-[#76c55d]"; // Slightly darker shade for hover effect
-const LIGHT_BG = "bg-[#f2faee]"; // Very light tint for icons
-// --- END CUSTOM COLOR CONSTANTS ---
+const HOVER_ACCENT = "hover:bg-[#76c55d]";
+const LIGHT_BG = "bg-[#f2faee]";
 
 export default function ContactPage() {
+  // Contact form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+
+  // Testimonial state
+  const [testimonialName, setTestimonialName] = useState("");
+  const [testimonialMessage, setTestimonialMessage] = useState("");
+  const [rating, setRating] = useState(0);
+
+  // UI states
   const [success, setSuccess] = useState(false);
+  const [testSuccess, setTestSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✨ Insert Contact form into Supabase
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      console.log({ name, email, message });
-      setLoading(false);
-      setSuccess(true);
-      setName("");
-      setEmail("");
-      setMessage("");
+    const { error } = await supabase.from("contact_messages").insert([
+      {
+        name,
+        email,
+        message,
+      },
+    ]);
 
-      // Automatically hide success message after 5 seconds
-      setTimeout(() => setSuccess(false), 5000);
-    }, 1500);
+    setLoading(false);
+
+    if (error) {
+      alert("Something went wrong. Please try again.");
+      console.error(error);
+      return;
+    }
+
+    // Success
+    setSuccess(true);
+    setName("");
+    setEmail("");
+    setMessage("");
+
+    setTimeout(() => setSuccess(false), 5000);
+  };
+
+  // ⭐ Insert Testimonial into Supabase
+  const handleTestimonialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (rating === 0) {
+      alert("Please select a rating");
+      return;
+    }
+
+    const { error } = await supabase.from("testimonials").insert([
+      {
+        name: testimonialName,
+        message: testimonialMessage,
+        rating,
+      },
+    ]);
+
+    if (error) {
+      alert("Failed to submit review.");
+      console.error(error);
+      return;
+    }
+
+    setTestSuccess(true);
+    setTestimonialName("");
+    setTestimonialMessage("");
+    setRating(0);
+
+    setTimeout(() => setTestSuccess(false), 4500);
   };
 
   const ContactInfoCard = ({ icon: Icon, title, content, link }) => (
     <div className="flex items-start space-x-4">
-      {/* Icon background is now the light tint of the new green */}
       <div className={`p-3 rounded-full ${LIGHT_BG} ${ACCENT_COLOR}`}>
         <Icon className="w-6 h-6" />
       </div>
@@ -48,7 +97,6 @@ export default function ContactPage() {
         <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
         <p className="text-gray-600">
           {link ? (
-            // Link text color uses the new green accent
             <a href={link} className={`font-medium ${ACCENT_COLOR} hover:underline`}>
               {content}
             </a>
@@ -62,26 +110,27 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section - Background uses the new green accent */}
-      <section className={`relative h-72 ${BG_ACCENT} flex items-center justify-center shadow-lg`}>
-        <div className="text-center">
-          {/* Text is a lighter tint of the green accent */}
-          <p className="text-[#c7e5b5] uppercase tracking-widest font-medium mb-2">Ready to Connect?</p>
-          <h1 className="text-5xl md:text-6xl font-extrabold text-white">Let's Talk</h1>
+
+      {/* HERO */}
+      <section className={`relative h-64 md:h-72 ${BG_ACCENT} flex items-center justify-center shadow-lg`}>
+        <div className="text-center px-4">
+          <p className="text-[#c7e5b5] text-sm md:text-base uppercase tracking-widest font-medium mb-2">
+            Ready to Connect?
+          </p>
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight">
+            Let's Talk
+          </h1>
         </div>
       </section>
 
-      {/* Contact Form + Info */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
+      {/* MAIN CONTENT */}
+      <section className="py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-          {/* Contact Information */}
-          <div className="lg:col-span-1 space-y-10 p-6 rounded-2xl bg-white shadow-lg border border-gray-100 h-fit">
-            {/* Title text color uses the new green accent */}
+          {/* LEFT CARD */}
+          <div className="lg:col-span-1 space-y-10 p-6 rounded-2xl bg-white shadow-lg border border-gray-100">
             <h2 className={`text-3xl font-bold ${ACCENT_COLOR}`}>Get Our Details</h2>
-            <p className="text-gray-600">
-              Need immediate assistance? Find our most important contact channels below.
-            </p>
+            <p className="text-gray-600">Need immediate assistance? Find our contact channels below.</p>
 
             <div className="space-y-6">
               <ContactInfoCard
@@ -110,117 +159,159 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div className="lg:col-span-2 bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100">
+          {/* CONTACT FORM */}
+          <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-2xl shadow-xl border border-gray-100">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">Send Us a Message</h2>
 
             {success && (
-              <div className="mb-6 p-4 bg-green-100 text-green-700 font-medium rounded-lg border border-green-200 animate-fadeIn">
-                🥳 Your message has been sent successfully! We will get back to you shortly.
+              <div className="mb-6 p-4 bg-green-100 text-green-700 font-medium rounded-lg border border-green-200">
+                🥳 Your message has been sent successfully!
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Name */}
               <div>
-                <label htmlFor="name" className="block text-gray-700 font-medium mb-2">Full Name</label>
+                <label className="block text-gray-700 font-medium mb-1">Full Name</label>
                 <input
-                  id="name"
                   type="text"
+                  placeholder="Your Name"
+                  required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  required
-                  className={`w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#f2faee] focus:border-[#8ed26b] transition duration-200`}
-                  placeholder="John Doe"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-[#f2faee] focus:border-[#8ed26b]"
                 />
               </div>
 
+              {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-gray-700 font-medium mb-2">Email Address</label>
+                <label className="block text-gray-700 font-medium mb-1">Email</label>
                 <input
-                  id="email"
                   type="email"
+                  required
+                  placeholder="Your Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className={`w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#f2faee] focus:border-[#8ed26b] transition duration-200`}
-                  placeholder="john.doe@example.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-[#f2faee] focus:border-[#8ed26b]"
                 />
               </div>
 
+              {/* Message */}
               <div>
-                <label htmlFor="message" className="block text-gray-700 font-medium mb-2">Message</label>
+                <label className="block text-gray-700 font-medium mb-1">Message</label>
                 <textarea
-                  id="message"
+                  rows={5}
+                  required
+                  placeholder="Your Message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  required
-                  className={`w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#f2faee] focus:border-[#8ed26b] transition duration-200`}
-                  rows={6}
-                  placeholder="How can we help you with your furniture needs?"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-[#f2faee] focus:border-[#8ed26b]"
                 />
               </div>
 
-              {/* Submit Button - Uses the new BG_ACCENT and HOVER_ACCENT */}
+              {/* Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex items-center justify-center space-x-3 ${BG_ACCENT} text-white font-semibold py-3 rounded-xl transition-all duration-300 shadow-lg ${HOVER_ACCENT} ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-xl'}`}
+                className={`w-full flex items-center justify-center space-x-3 ${BG_ACCENT} text-white font-semibold py-3 rounded-xl ${HOVER_ACCENT}`}
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Sending...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5" />
-                    <span>Send Message</span>
-                  </>
-                )}
+                {loading ? "Sending..." : <><Send className="w-5" /> <span>Send Message</span></>}
               </button>
             </form>
           </div>
         </div>
 
-        {/* Google Maps Embed */}
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 mt-12">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">Find Our Location</h3>
-            <div className="w-full h-80 rounded-2xl overflow-hidden shadow-xl border border-gray-200">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.978715232021!2d77.594566!3d12.971599!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1670f1b8f6a3%3A0x4e6e948e0aaee77a!2sBangalore!5e0!3m2!1sen!2sin!4v1699439332923!5m2!1sen!2sin"
-                className="w-full h-full border-0"
-                allowFullScreen={false}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Location Map"
-              ></iframe>
-            </div>
+        {/* MAP */}
+        <div className="max-w-7xl mx-auto px-4 mt-14">
+          <h3 className="text-2xl font-bold text-gray-800 mb-4">Find Our Location</h3>
+          <div className="w-full h-72 md:h-80 rounded-2xl overflow-hidden shadow-xl border border-gray-200">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3889.8050151135087!2d77.72891557484227!3d13.005833887324216!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae11424d3979f3%3A0x4cea90e1c13c4c5!2sG7%20Kemps%20Green%20View%2C%20Ayyappanagar%2C%20Krishnarajapura%2C%20Bengaluru%2C%20Karnataka%20560016!5e0!3m2!1sen!2sin!4v1709397770000!5m2!1sen!2sin"
+              className="w-full h-full"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+
+          </div>
         </div>
 
+        {/* ⭐ TESTIMONIAL FORM */}
+        <div className="max-w-4xl mx-auto px-4 mt-16 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+          <h3 className="text-3xl font-bold mb-6 text-gray-800">Share Your Experience</h3>
+
+          {testSuccess && (
+            <div className="p-4 bg-green-100 text-green-700 font-medium rounded-lg mb-4">
+              Thank you for your valuable feedback!
+            </div>
+          )}
+
+          <form onSubmit={handleTestimonialSubmit} className="space-y-6">
+
+            {/* Name */}
+            <input
+              type="text"
+              placeholder="Your Name"
+              required
+              value={testimonialName}
+              onChange={(e) => setTestimonialName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-[#8ed26b]"
+            />
+
+            {/* Rating */}
+            <div className="flex space-x-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={30}
+                  className={`cursor-pointer transition ${rating >= star ? "text-yellow-400" : "text-gray-300"
+                    }`}
+                  fill={rating >= star ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  onClick={() => setRating(star)}
+                />
+              ))}
+            </div>
+
+
+            {/* Comment */}
+            <textarea
+              rows={4}
+              placeholder="Write your testimonial..."
+              required
+              value={testimonialMessage}
+              onChange={(e) => setTestimonialMessage(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-[#8ed26b]"
+            />
+
+            {/* Button */}
+            <button
+              type="submit"
+              className={`w-full py-3 rounded-xl text-white font-semibold ${BG_ACCENT} ${HOVER_ACCENT}`}
+            >
+              Submit Review
+            </button>
+          </form>
+        </div>
       </section>
 
-      {/* CTA Section - Background uses the new green accent */}
-      <section className={`py-16 ${BG_ACCENT} shadow-inner`}>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Need Installation Right Away?
-          </h2>
-          {/* Text is a lighter tint of the green accent */}
-          <p className="text-[#c7e5b5] mb-8 max-w-2xl mx-auto">
-            Skip the message and head straight to booking. Our certified technicians are ready to serve you today.
-          </p>
+      {/* CTA */}
+      <section className={`py-14 ${BG_ACCENT} text-center`}>
+        <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+          Need Installation Right Away?
+        </h2>
+        <p className="text-[#c7e5b5] mb-6 px-4 max-w-2xl mx-auto">
+          Skip the message and head straight to booking.
+        </p>
 
-          {/* CTA Link - Text color uses the new green accent */}
-          <Link
-            href="/site/services"
-            className={`inline-block px-10 py-4 bg-white ${ACCENT_COLOR} font-bold rounded-full hover:bg-teal-50 transition-all duration-300 shadow-2xl transform hover:scale-105`}
-          >
-            Book a Service Now →
-          </Link>
-        </div>
+        <Link
+          href="/site/services"
+          className="inline-block px-10 py-4 bg-white text-[#8ed26b] font-bold rounded-full hover:bg-teal-50 shadow-lg"
+        >
+          Book a Service Now →
+        </Link>
       </section>
     </div>
   );

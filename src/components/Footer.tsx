@@ -9,7 +9,7 @@ const BRAND_ACCENT = "#8ed26b";
 const BRAND_HOVER = "#a3d97f";
 
 // Logo details
-const LOGO_PATH = "/logoInstaFitCore.jpg"; // Path relative to the 'public' directory
+const LOGO_PATH = "/Insta.png"; // Path relative to the 'public' directory
 
 export default function Footer() {
   return (

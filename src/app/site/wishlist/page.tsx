@@ -335,7 +335,7 @@ export default function WishlistPage() {
                 <p className="text-slate-600 text-2xl font-semibold mb-2">Your wishlist is empty.</p>
                 <p className="text-slate-500 mb-6">Start saving the services you love!</p>
                 <a 
-                    href="/services" 
+                    href="/site/services" 
                     className={`inline-block mt-4 px-8 py-3 text-white font-bold rounded-full shadow-lg transition duration-300 hover:scale-[1.05]`}
                     style={{ backgroundColor: PRIMARY_COLOR }}
                 >
