@@ -11,6 +11,24 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+// Type for StatCard props
+type StatCardProps = {
+  title: string;
+  value: number | string;
+  icon: JSX.Element;
+  gradient: string;
+};
+
+// Type for a Booking item
+type Booking = {
+  id: number;
+  customer_name: string;
+  service_name: string;
+  date: string;
+  status: string;
+  total_price: number;
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalCategories: 0,
@@ -20,7 +38,7 @@ export default function AdminDashboard() {
     totalReviews: 0,
   });
 
-  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
 
   const fetchDashboardData = async () => {
     try {
@@ -52,7 +70,7 @@ export default function AdminDashboard() {
         totalReviews: reviewCount || 0,
       });
 
-      setRecentBookings(recent || []);
+      setRecentBookings(recent as Booking[] || []);
     } catch (err: any) {
       console.error("Failed to fetch dashboard data:", err.message);
     }
@@ -64,7 +82,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="bg-[#f5f7fa] min-h-screen p-8 space-y-12">
-
       {/* HEADER CARD */}
       <div className="bg-white backdrop-blur-xl shadow-xl p-8 rounded-3xl border border-gray-100 flex items-center justify-between">
         <div>
@@ -185,7 +202,7 @@ export default function AdminDashboard() {
 /*-----------------------
       STAT CARD
 ------------------------*/
-function StatCard({ title, value, icon, gradient }) {
+function StatCard({ title, value, icon, gradient }: StatCardProps) {
   return (
     <div className="p-7 bg-white rounded-3xl shadow-lg border border-gray-100 hover:shadow-2xl hover:-translate-y-1 transition-all">
       <div className="flex items-center gap-5">
