@@ -432,9 +432,9 @@ export default function ServiceDetailsPage() {
     let list = [...services];
     if (searchText) list = list.filter((x) => x.service_name.toLowerCase().includes(searchText.toLowerCase()));
     if (activeFilter) list = list.filter((x) => {
-  const price = (x as any)[activeFilter + "_price"];
-  return price && price > 0;
-});
+      const price = (x as any)[activeFilter + "_price"];
+      return price && price > 0;
+    });
 
 
     if (sortBy === "price_asc") list.sort((a, b) => getBasePrice(a) - getBasePrice(b));
@@ -574,7 +574,11 @@ export default function ServiceDetailsPage() {
                         onClick={() => handleBookClick(item)}
                         disabled={!isAuthenticated}
                         className={`flex-grow p-3 rounded-xl text-white font-semibold flex items-center justify-center shadow-lg transition-colors ${!isAuthenticated ? "bg-gray-400 opacity-50 cursor-not-allowed" : ""}`}
-                        style={isAuthenticated ? { backgroundColor: PRIMARY_COLOR, hover: { backgroundColor: HOVER_COLOR } } : {}}
+                        style={isAuthenticated ? {
+                          backgroundColor: PRIMARY_COLOR,
+                          hover: { backgroundColor: HOVER_COLOR }
+                        } : {}}
+
                       >
                         Book Now
                         <ArrowRight className="w-4 h-4 ml-2" />
