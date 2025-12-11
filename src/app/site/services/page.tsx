@@ -787,8 +787,7 @@ export default function ServicesPage() {
           service={selectedService}
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
-          userEmail={userEmail || undefined}
-        />
+userEmail={userEmail || ''}        />
       )}
     </div>
   );
