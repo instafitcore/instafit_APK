@@ -226,9 +226,9 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ order, onClose, onSubmit }) =
               value={serviceDetails}
               onChange={(e) => setServiceDetails(e.target.value)}
               placeholder="E.g., They were quick and fixed the issue perfectly."
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-offset-2 transition focus:ring-offset-0 resize-none"
-              style={{ borderColor: LIGHT_ACCENT_BG, focusRingColor: ACCENT_COLOR }}
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-offset-2 focus:ring-green-400 transition resize-none"
             />
+
           </div>
 
           {/* Image Upload Section */}
