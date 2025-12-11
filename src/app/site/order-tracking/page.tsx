@@ -9,7 +9,7 @@ import {
   MapPin,
   Wrench,
   Calendar,
-IndianRupee,  Home,
+  IndianRupee, Home,
   Loader2,// Example usage in your React component:
   Hash,
   User,
@@ -19,7 +19,7 @@ IndianRupee,  Home,
   Image as ImageIcon,
 } from "lucide-react";
 // Ensure you have a Toast component implementation at this path
-import { useToast } from "@/components/Toast"; 
+import { useToast } from "@/components/Toast";
 
 // --- Configuration ---
 const ACCENT_COLOR = "#8ed26b"; // Your desired green
@@ -73,10 +73,10 @@ type Booking = {
 };
 
 type ReviewSubmitData = {
-    rating: number;
-    employeeName: string;
-    serviceDetails: string;
-    imageFiles: File[];
+  rating: number;
+  employeeName: string;
+  serviceDetails: string;
+  imageFiles: File[];
 };
 
 // --- Status Helper (omitted for brevity) ---
@@ -112,7 +112,7 @@ type ReviewModalProps = {
 const ReviewModal: React.FC<ReviewModalProps> = ({ order, onClose, onSubmit }) => {
   const [rating, setRating] = useState(5);
   // Change this line to start with an empty string, allowing the user to input the employee name without pre-filling from potentially incorrect data
-const [employeeName, setEmployeeName] = useState("");
+  const [employeeName, setEmployeeName] = useState("");
   const [serviceDetails, setServiceDetails] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -136,9 +136,9 @@ const [employeeName, setEmployeeName] = useState("");
       });
     }
     setImages((prev) => [...prev, ...newFiles]);
-    
+
     if (imageInputRef.current) {
-        imageInputRef.current.value = '';
+      imageInputRef.current.value = '';
     }
   };
 
@@ -156,16 +156,16 @@ const [employeeName, setEmployeeName] = useState("");
     }
 
     setIsSubmitting(true);
-    const success = await onSubmit({ 
-        rating, 
-        employeeName: employeeName.trim(), 
-        serviceDetails, 
-        imageFiles: images
+    const success = await onSubmit({
+      rating,
+      employeeName: employeeName.trim(),
+      serviceDetails,
+      imageFiles: images
     });
     setIsSubmitting(false);
 
     if (success) {
-        onClose();
+      onClose();
     }
   };
 
@@ -203,21 +203,17 @@ const [employeeName, setEmployeeName] = useState("");
           </div>
 
           {/* Employee Name */}
-          <div className="space-y-2">
-            <label htmlFor="employee" className="text-sm font-semibold text-slate-700 block">
-              Employee Name
-            </label>
-            <input
-              id="employee"
-              type="text"
-              value={employeeName}
-              onChange={(e) => setEmployeeName(e.target.value)}
-              required
-              placeholder="E.g., David or Technician 123"
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-offset-2 transition focus:ring-offset-0"
-              style={{ borderColor: LIGHT_ACCENT_BG, focusRingColor: ACCENT_COLOR }}
-            />
-          </div>
+          <input
+            id="employee"
+            type="text"
+            value={employeeName}
+            onChange={(e) => setEmployeeName(e.target.value)}
+            required
+            placeholder="E.g., David or Technician 123"
+            className={`w-full p-3 border rounded-lg transition focus:ring-2 focus:ring-offset-2 focus:ring-green-400`}
+            style={{ borderColor: LIGHT_ACCENT_BG }}
+          />
+
 
           {/* Service Details */}
           <div className="space-y-2">
@@ -307,14 +303,14 @@ export default function MyOrdersPage() {
   const { toast } = useToast();
 
   // Fetch reviewed orders (omitted for brevity)
-  const fetchReviewStatus = async (userId: string) => { /* ... existing implementation ... */ 
+  const fetchReviewStatus = async (userId: string) => { /* ... existing implementation ... */
     const { data, error } = await supabase.from("service_reviews").select("booking_id").eq("user_id", userId);
     if (data) setReviewedOrderIds(data.map((r) => r.booking_id));
     if (error) console.error("Error fetching review status:", error);
   };
-  
+
   // Fetch bookings (omitted for brevity)
-  const fetchOrders = async () => { /* ... existing implementation ... */ 
+  const fetchOrders = async () => { /* ... existing implementation ... */
     const { data, error } = await supabase.auth.getUser();
     if (error || !data?.user) {
       setLoading(false);
@@ -333,7 +329,7 @@ export default function MyOrdersPage() {
     setLoading(false);
   };
 
-  useEffect(() => { /* ... existing subscription setup ... */ 
+  useEffect(() => { /* ... existing subscription setup ... */
     const setup = async () => {
       await fetchOrders();
       const { data } = await supabase.auth.getUser();
@@ -391,7 +387,7 @@ export default function MyOrdersPage() {
           const path = `reviews/${userId}/${selectedOrderToReview.id}/${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
 
           const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(STORAGE_BUCKET_NAME) 
+            .from(STORAGE_BUCKET_NAME)
             .upload(path, file, {
               cacheControl: '3600',
               upsert: false,
@@ -401,9 +397,9 @@ export default function MyOrdersPage() {
 
           // 2. GET PUBLIC URL
           const { data: urlData } = supabase.storage
-            .from(STORAGE_BUCKET_NAME) 
+            .from(STORAGE_BUCKET_NAME)
             .getPublicUrl(uploadData.path);
-            
+
           return urlData.publicUrl;
         });
 
@@ -435,10 +431,10 @@ export default function MyOrdersPage() {
 
       } catch (error: any) {
         console.error("Review Submission Error:", error);
-        toast({ 
-            title: "Review Failed", 
-            description: `Could not submit review: ${error.message || "An unknown error occurred."} (Check if storage bucket '${STORAGE_BUCKET_NAME}' exists)`, 
-            variant: "destructive" 
+        toast({
+          title: "Review Failed",
+          description: `Could not submit review: ${error.message || "An unknown error occurred."} (Check if storage bucket '${STORAGE_BUCKET_NAME}' exists)`,
+          variant: "destructive"
         });
         return false;
       }
@@ -577,7 +573,7 @@ export default function MyOrdersPage() {
             {/* Already reviewed */}
             {hasBeenReviewed && (
               <p className="mt-6 text-sm font-semibold text-green-700">
-                 You have reviewed this order.
+                You have reviewed this order.
               </p>
             )}
           </div>
