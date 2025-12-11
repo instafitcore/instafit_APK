@@ -5,6 +5,22 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
+
+export type AddressFields = {
+  customer_name: string;
+  mobile: string;
+  alternate_mobile: string;
+  flat_no: string;
+  floor: string;
+  building_name: string;
+  street: string;
+  area_zone: string;
+  landmark: string;
+  city: string;
+  state: string;
+  pincode: string;
+};
+
 type SidebarChild = {
   label: string;
   path: string;
