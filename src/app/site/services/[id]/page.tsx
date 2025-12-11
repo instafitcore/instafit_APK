@@ -570,19 +570,14 @@ export default function ServiceDetailsPage() {
                         <ShoppingCart className="w-5 h-5" />
                       </button>
 
-                      <button
-                        onClick={() => handleBookClick(item)}
-                        disabled={!isAuthenticated}
-                        className={`flex-grow p-3 rounded-xl text-white font-semibold flex items-center justify-center shadow-lg transition-colors ${!isAuthenticated ? "bg-gray-400 opacity-50 cursor-not-allowed" : ""}`}
-                        style={isAuthenticated ? {
-                          backgroundColor: PRIMARY_COLOR,
-                          hover: { backgroundColor: HOVER_COLOR }
-                        } : {}}
+                     <button
+  disabled={!isAuthenticated}
+  className={`flex-grow p-3 rounded-xl text-white font-semibold flex items-center justify-center shadow-lg
+    ${isAuthenticated ? 'bg-[#8ED26B] hover:bg-[#72b852]' : 'bg-gray-400 opacity-50 cursor-not-allowed'}`}
+>
+  Book Now
+</button>
 
-                      >
-                        Book Now
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </button>
                     </div>
                     {!isAuthenticated && <p className="text-xs text-red-500 mt-2 text-center">Sign in to add to wishlist or cart</p>}
                   </div>
