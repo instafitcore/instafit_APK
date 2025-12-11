@@ -195,52 +195,86 @@ export default function ServiceDetailsPage() {
   const disabledClass = "opacity-50 cursor-not-allowed";
 
   // ------------------- FETCH REVIEWS FOR SUBCATEGORY -------------------
-  const fetchReviewsForSubcategory = useCallback(async (subcategoryName: string) => {
-    const { data: serviceIdsData } = await supabase
-      .from("services")
-      .select("id")
-      .eq("subcategory", subcategoryName);
+const fetchReviewsForSubcategory = useCallback(async (subcategoryName: string) => {
+  const { data: serviceIdsData } = await supabase
+    .from("services")
+    .select("id")
+    .eq("subcategory", subcategoryName);
 
-    const serviceIds = serviceIdsData?.map((s) => s.id) || [];
-    if (!serviceIds.length) return;
+  const serviceIds = serviceIdsData?.map((s) => s.id) || [];
+  if (!serviceIds.length) return;
 
-    const { data: reviewsData } = await supabase
-      .from("service_reviews")
-      .select("rating, bookings!inner(service_id)")
-      .eq("status", "approved");
+  const { data: reviewsData, error } = await supabase
+    .from("service_reviews")
+    .select("id, rating, service_id")
+    .eq("is_approved", true);
 
-    if (reviewsData) {
-      const ratingsMap: Record<number, { sum: number; count: number }> = {};
-      reviewsData.forEach((review: any) => {
-        const sid = review.bookings.service_id;
-        if (!serviceIds.includes(sid)) return;
-        if (!ratingsMap[sid]) ratingsMap[sid] = { sum: 0, count: 0 };
-        ratingsMap[sid].sum += review.rating;
-        ratingsMap[sid].count += 1;
-      });
-      const avgRatings: Record<number, number> = {};
-      Object.keys(ratingsMap).forEach((sid) => {
-        avgRatings[parseInt(sid)] = ratingsMap[parseInt(sid)].sum / ratingsMap[parseInt(sid)].count;
-      });
-      setAverageRatings(avgRatings);
+  if (error) {
+    console.error("Error fetching reviews:", error);
+    return;
+  }
 
-      // Subcategory-wide stats
-      const allReviews = reviewsData.filter((r: any) => serviceIds.includes(r.bookings.service_id));
-      const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
-      setServiceStats({ averageRating: allReviews.length ? totalRating / allReviews.length : null, reviewCount: allReviews.length, reviews: allReviews });
+  const ratingsMap: Record<number, { sum: number; count: number }> = {};
+
+  reviewsData.forEach((review) => {
+    if (!review.service_id) return;
+    if (!serviceIds.includes(review.service_id)) return;
+
+    if (!ratingsMap[review.service_id]) {
+      ratingsMap[review.service_id] = { sum: 0, count: 0 };
     }
-  }, []);
+
+    ratingsMap[review.service_id].sum += review.rating;
+    ratingsMap[review.service_id].count++;
+  });
+
+  // Build averageRatings per service
+  const avgRatings: Record<number, number> = {};
+  Object.keys(ratingsMap).forEach((sid) => {
+    avgRatings[+sid] =
+      ratingsMap[+sid].sum / ratingsMap[+sid].count;
+  });
+
+  setAverageRatings(avgRatings);
+
+  // Subcategory summary
+  const allSubcategoryReviews = reviewsData.filter(
+    (r) => serviceIds.includes(r.service_id)
+  );
+
+  const totalRating = allSubcategoryReviews.reduce(
+    (sum, r) => sum + r.rating,
+    0
+  );
+
+  setServiceStats({
+    averageRating:
+      allSubcategoryReviews.length > 0
+        ? totalRating / allSubcategoryReviews.length
+        : null,
+    reviewCount: allSubcategoryReviews.length,
+    reviews: allSubcategoryReviews,
+  });
+}, []);
+
 
   // ------------------- FETCH REVIEWS FOR A SERVICE -------------------
   const fetchReviewsForService = useCallback(async (serviceId: number) => {
-    const { data: reviewsData } = await supabase
-      .from("service_reviews")
-      .select("id, rating, employee_name, service_details, created_at, images, bookings!inner(service_id)")
-      .eq("status", "approved")
-      .eq("bookings.service_id", serviceId);
+  const { data, error } = await supabase
+    .from("service_reviews")
+    .select("id, rating, employee_name, service_details, created_at, images")
+    .eq("is_approved", true)
+    .eq("service_id", serviceId)
+    .order("created_at", { ascending: false });
 
-    setReviewsForService(reviewsData || []);
-  }, []);
+  if (error) {
+    console.error("Error loading service reviews:", error);
+    setReviewsForService([]);
+  } else {
+    setReviewsForService(data || []);
+  }
+}, []);
+
 
   const handleSeeReviews = (service: ServiceItem) => {
     setSelectedServiceForReviews(service);

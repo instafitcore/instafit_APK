@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase-client";
 import { Search, User, Phone, X, Calendar, DollarSign, Clock } from "lucide-react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Booking = {
     id: number;
@@ -67,6 +70,56 @@ export default function BookingsPage() {
     const [newStatus, setNewStatus] = useState("");
     const [modalError, setModalError] = useState("");
     // -------------------
+
+    const downloadExcel = () => {
+        const dataToExport = filtered.map(b => ({
+            ID: b.id,
+            Customer: b.customer_name,
+            Service: b.service_name,
+            Types: b.service_types.join(", "),
+            Date: b.date,
+            Time: b.booking_time,
+            Price: b.total_price,
+            Address: b.address || "N/A",
+            Employee: b.employee_name || "Not Assigned",
+            Phone: b.employee_phone || "N/A",
+            Status: b.status,
+            Payment: b.payment_status || "N/A",
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Bookings");
+
+        XLSX.writeFile(workbook, "Bookings.xlsx");
+    };
+    const downloadPDF = () => {
+        const doc = new jsPDF();
+
+        doc.setFontSize(18);
+        doc.text("Bookings Report", 14, 20);
+
+        const tableData = filtered.map(b => [
+            b.id,
+            b.customer_name,
+            b.service_name,
+            b.date,
+            b.booking_time,
+            b.total_price,
+            b.status
+        ]);
+
+        autoTable(doc, {
+            head: [["ID", "Customer", "Service", "Date", "Time", "Price", "Status"]],
+            body: tableData,
+            startY: 30,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [52, 152, 219] }
+        });
+
+        doc.save("Bookings.pdf");
+    };
+
 
     // Fetches initial data
     const fetchBookings = async () => {
@@ -205,10 +258,27 @@ export default function BookingsPage() {
 
     return (
         <div className="p-8 min-h-screen bg-gray-50">
-            <h1 className="text-4xl font-extrabold mb-8 text-gray-900 tracking-tight">
-                Booking Management Dashboard
-            </h1>
+            <div className="flex items-center justify-between mb-8">
+                <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
+                    Booking Management Dashboard
+                </h1>
 
+                <div className="flex gap-3">
+                    <button
+                        onClick={downloadExcel}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700"
+                    >
+                        Download Excel
+                    </button>
+
+                    <button
+                        onClick={downloadPDF}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium shadow hover:bg-red-700"
+                    >
+                        Download PDF
+                    </button>
+                </div>
+            </div>
 
             {/* --- FILTER CARD --- */}
             <div className="bg-white shadow-lg rounded-xl p-6 border border-gray-100 mb-8">
@@ -266,6 +336,10 @@ export default function BookingsPage() {
                         <option>Dismantle</option>
                         <option>Repair</option>
                     </select>
+                    <div className="flex justify-end mb-4 gap-4">
+
+                    </div>
+
                 </div>
             </div>
 

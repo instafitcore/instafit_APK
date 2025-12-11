@@ -74,11 +74,10 @@ const FilterButton: React.FC<{
 }> = ({ label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1 whitespace-nowrap ${
-      active
-        ? `bg-[${PRIMARY_COLOR}] text-white shadow-md hover:bg-[${HOVER_COLOR}]`
-        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-    }`}
+    className={`px-3 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1 whitespace-nowrap ${active
+      ? `bg-[${PRIMARY_COLOR}] text-white shadow-md hover:bg-[${HOVER_COLOR}]`
+      : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+      }`}
   >
     {label} {active && <X className="w-3 h-3" />}
   </button>
@@ -197,35 +196,36 @@ export default function ServicesPage() {
     // Fetch approved reviews and calculate average ratings
     // ... existing code ...
 
-// Fetch approved reviews and calculate average ratings
-const { data: reviewsData, error: reviewsError } = await supabase
-  .from("service_reviews")
-  .select("rating, bookings(service_id)")
-  .eq("status", "approved");
+    // Fetch approved reviews and calculate average ratings
+    // Fetch approved reviews and calculate average ratings
+    const { data: reviewsData, error: reviewsError } = await supabase
+      .from("service_reviews")
+      .select("rating, service_id")
+      .eq("status", "approved");
 
-if (reviewsError) {
-  console.error("Error fetching reviews:", reviewsError);
-} else if (reviewsData) {
-  const ratingsMap: Record<number, { sum: number; count: number }> = {};
-  (reviewsData as ReviewRaw[]).forEach(review => {
-    const serviceId = review.bookings.service_id;
-    if (!serviceId) return; // Skip if service_id is null
-    if (!ratingsMap[serviceId]) ratingsMap[serviceId] = { sum: 0, count: 0 };
-    ratingsMap[serviceId].sum += review.rating;
-    ratingsMap[serviceId].count += 1;
-  });
+    if (reviewsError) {
+      console.error("Error fetching reviews:", reviewsError);
+    } else if (reviewsData) {
+      const ratingsMap: Record<number, { sum: number; count: number }> = {};
 
-  const avgRatings: Record<number, number> = {};
-  Object.keys(ratingsMap).forEach(sid => {
-    const id = parseInt(sid);
-    if (!isNaN(id) && ratingsMap[id]) {
-      avgRatings[id] = ratingsMap[id].sum / ratingsMap[id].count;
+      reviewsData.forEach((review: any) => {
+        const serviceId = review.service_id;
+        if (!serviceId) return;
+
+        if (!ratingsMap[serviceId]) ratingsMap[serviceId] = { sum: 0, count: 0 };
+        ratingsMap[serviceId].sum += review.rating;
+        ratingsMap[serviceId].count++;
+      });
+
+      const avgRatings: Record<number, number> = {};
+      for (const sid in ratingsMap) {
+        avgRatings[+sid] =
+          ratingsMap[sid].sum / ratingsMap[sid].count;
+      }
+
+      setAverageRatings(avgRatings);
     }
-  });
-  setAverageRatings(avgRatings);
-}
 
-// ... existing code ...
 
     setLoading(false);
   }, []);
@@ -239,7 +239,7 @@ if (reviewsError) {
     const { data, error } = await supabase
       .from("service_reviews")
       .select("id, rating, employee_name, service_details, created_at, images")
-      .eq("status", "approved")  // only approved reviews
+      .eq("is_approved", true)
       .eq("service_id", serviceId) // filter by service
       .order("created_at", { ascending: false });
 
@@ -371,8 +371,8 @@ if (reviewsError) {
               <button
                 onClick={() => setSelectedSubcategory(null)}
                 className={`w-full text-left px-4 py-2 rounded-xl font-medium border-2 ${selectedSubcategory === null
-                    ? "bg-primary-green text-white border-primary-green"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-transparent"
+                  ? "bg-primary-green text-white border-primary-green"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-transparent"
                   }`}
               >
                 All Services
@@ -383,8 +383,8 @@ if (reviewsError) {
                 <button
                   onClick={() => setSelectedSubcategory(subcat.subcategory)}
                   className={`w-full text-left px-4 py-2 rounded-xl ${selectedSubcategory === subcat.subcategory
-                      ? "bg-primary-green text-white font-semibold shadow-md"
-                      : "hover:bg-gray-100 text-gray-700"
+                    ? "bg-primary-green text-white font-semibold shadow-md"
+                    : "hover:bg-gray-100 text-gray-700"
                     }`}
                 >
                   {subcat.subcategory}
@@ -444,7 +444,7 @@ if (reviewsError) {
                     key={service.id}
                     className="bg-white rounded-2xl shadow-lg p-5 flex flex-col relative"
                   >
-                                        {/* Wishlist Heart */}
+                    {/* Wishlist Heart */}
                     <button
                       onClick={() => toggleWishlist(service.id)}
                       className={`absolute top-3 right-3 z-20 p-2 rounded-full shadow-md transition-colors 
@@ -551,8 +551,8 @@ if (reviewsError) {
                       <button
                         onClick={() => handleBookClick(service)}
                         className={`flex-grow p-3 rounded-xl text-white font-semibold flex items-center justify-center shadow-md ${isAuthenticated
-                            ? "bg-primary-green hover:bg-hover-green"
-                            : "bg-gray-400 opacity-50 cursor-not-allowed"
+                          ? "bg-primary-green hover:bg-hover-green"
+                          : "bg-gray-400 opacity-50 cursor-not-allowed"
                           }`}
                         disabled={!isAuthenticated}
                       >
