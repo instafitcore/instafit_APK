@@ -415,18 +415,18 @@ export default function ProfilePage() {
                                         <label htmlFor="floor" className="block text-lg font-medium text-gray-700 mb-2">
                                             Floor:
                                         </label>
-                                       <input
-    id="floor"
-    type="text"
-    value={floor}
-    onChange={(e) => setFloor(e.target.value)}
-    className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
-    style={{
-        borderColor: BORDER_COLOR,
-        ['--tw-ring-color' as any]: PRIMARY_COLOR, // ✔ TS safe
-    }}
-    disabled={isSaving}
-/>
+                                        <input
+                                            id="floor"
+                                            type="text"
+                                            value={floor}
+                                            onChange={(e) => setFloor(e.target.value)}
+                                            className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
+                                            style={{
+                                                borderColor: BORDER_COLOR,
+                                                ['--tw-ring-color' as any]: PRIMARY_COLOR, // ✔ TS safe
+                                            }}
+                                            disabled={isSaving}
+                                        />
 
                                     </div>
                                 </div>
@@ -436,18 +436,18 @@ export default function ProfilePage() {
                                     <label htmlFor="building_apartment_name" className="block text-lg font-medium text-gray-700 mb-2">
                                         <Building2 className="w-4 h-4 inline mr-2 text-gray-500" /> Building / Apartment Name:
                                     </label>
-                                   <input
-    id="building_apartment_name"
-    type="text"
-    value={buildingApartmentName}
-    onChange={(e) => setBuildingApartmentName(e.target.value)}
-    className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
-    style={{
-        borderColor: BORDER_COLOR,
-        ['--tw-ring-color' as any]: PRIMARY_COLOR, // ✔ No TypeScript error
-    }}
-    disabled={isSaving}
-/>
+                                    <input
+                                        id="building_apartment_name"
+                                        type="text"
+                                        value={buildingApartmentName}
+                                        onChange={(e) => setBuildingApartmentName(e.target.value)}
+                                        className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
+                                        style={{
+                                            borderColor: BORDER_COLOR,
+                                            ['--tw-ring-color' as any]: PRIMARY_COLOR, // ✔ No TypeScript error
+                                        }}
+                                        disabled={isSaving}
+                                    />
 
                                 </div>
 
@@ -457,18 +457,18 @@ export default function ProfilePage() {
                                         <label htmlFor="street_locality" className="block text-lg font-medium text-gray-700 mb-2">
                                             Street / Locality:
                                         </label>
-                                       <input
-    id="street_locality"
-    type="text"
-    value={streetLocality}
-    onChange={(e) => setStreetLocality(e.target.value)}
-    className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
-    style={{
-        borderColor: BORDER_COLOR,
-        ['--tw-ring-color' as any]: PRIMARY_COLOR, // ✔ TypeScript-safe
-    }}
-    disabled={isSaving}
-/>
+                                        <input
+                                            id="street_locality"
+                                            type="text"
+                                            value={streetLocality}
+                                            onChange={(e) => setStreetLocality(e.target.value)}
+                                            className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
+                                            style={{
+                                                borderColor: BORDER_COLOR,
+                                                ['--tw-ring-color' as any]: PRIMARY_COLOR, // ✔ TypeScript-safe
+                                            }}
+                                            disabled={isSaving}
+                                        />
 
                                     </div>
                                     <div>
@@ -481,8 +481,10 @@ export default function ProfilePage() {
                                             value={areaZone}
                                             onChange={(e) => setAreaZone(e.target.value)}
                                             className="form-input block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
-                                            style={{ borderColor: BORDER_COLOR, '--tw-ring-color': PRIMARY_COLOR }}
-                                            disabled={isSaving}
+  style={{
+        borderColor: BORDER_COLOR,
+        ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TS-safe
+    }}                                            disabled={isSaving}
                                         />
                                     </div>
                                 </div>
@@ -492,18 +494,18 @@ export default function ProfilePage() {
                                     <label htmlFor="landmark" className="block text-lg font-medium text-gray-700 mb-2">
                                         Landmark (Optional):
                                     </label>
-                                   <input
-    id="area_zone"
-    type="text"
-    value={areaZone}
-    onChange={(e) => setAreaZone(e.target.value)}
-    className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
-    style={{
-        borderColor: BORDER_COLOR,
-        ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TS-safe
-    }}
-    disabled={isSaving}
-/>
+                                    <input
+                                        id="area_zone"
+                                        type="text"
+                                        value={areaZone}
+                                        onChange={(e) => setAreaZone(e.target.value)}
+                                        className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
+                                        style={{
+                                            borderColor: BORDER_COLOR,
+                                            ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TS-safe
+                                        }}
+                                        disabled={isSaving}
+                                    />
 
                                 </div>
 
@@ -513,18 +515,18 @@ export default function ProfilePage() {
                                         <label htmlFor="city_town" className="block text-lg font-medium text-gray-700 mb-2">
                                             City / Town:
                                         </label>
-                                      <input
-    id="city_town"
-    type="text"
-    value={cityTown}
-    onChange={(e) => setCityTown(e.target.value)}
-    className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
-    style={{
-        borderColor: BORDER_COLOR,
-        ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TS-safe
-    }}
-    disabled={isSaving}
-/>
+                                        <input
+                                            id="city_town"
+                                            type="text"
+                                            value={cityTown}
+                                            onChange={(e) => setCityTown(e.target.value)}
+                                            className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
+                                            style={{
+                                                borderColor: BORDER_COLOR,
+                                                ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TS-safe
+                                            }}
+                                            disabled={isSaving}
+                                        />
 
                                     </div>
                                     <div>
@@ -532,17 +534,17 @@ export default function ProfilePage() {
                                             State:
                                         </label>
                                         <input
-    id="state"
-    type="text"
-    value={state}
-    onChange={(e) => setState(e.target.value)}
-    className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
-    style={{
-        borderColor: BORDER_COLOR,
-        ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TypeScript-safe
-    }}
-    disabled={isSaving}
-/>
+                                            id="state"
+                                            type="text"
+                                            value={state}
+                                            onChange={(e) => setState(e.target.value)}
+                                            className="form-input block w-full px-4 py-3 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
+                                            style={{
+                                                borderColor: BORDER_COLOR,
+                                                ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TypeScript-safe
+                                            }}
+                                            disabled={isSaving}
+                                        />
 
                                     </div>
                                     <div>
@@ -555,10 +557,10 @@ export default function ProfilePage() {
                                             value={pincode}
                                             onChange={(e) => setPincode(e.target.value)}
                                             className="form-input block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150"
- style={{
-        borderColor: BORDER_COLOR,
-        ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TypeScript-safe
-    }}                                            disabled={isSaving}
+                                            style={{
+                                                borderColor: BORDER_COLOR,
+                                                ['--tw-ring-color' as any]: PRIMARY_COLOR,   // ✔ TypeScript-safe
+                                            }} disabled={isSaving}
                                         />
                                     </div>
                                 </div>
