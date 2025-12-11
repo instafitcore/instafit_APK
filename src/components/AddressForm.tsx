@@ -7,7 +7,7 @@ import {
     MapPin,
     Building,
     AlertCircle,
-} from "lucide-react"; // Import icons for visual cues
+} from "lucide-react";
 
 export type AddressFields = {
     customer_name: string;
@@ -31,18 +31,19 @@ type Props = {
     disabled?: boolean;
 };
 
-// Define primary color for consistency (matches CartPage)
 const PRIMARY_COLOR = "#8ED26B";
 const ACCENT_COLOR = "#059669";
 
-// Reusable input class with enhanced styling
-const inputClass = `w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 text-sm bg-gray-50 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed`;
-const errorInputClass = `${inputClass} border-red-400 focus:ring-red-200`;
+const inputClass = `w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none 
+focus:ring-2 focus:border-transparent transition-all duration-200 
+text-sm bg-gray-50 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed`;
+
+const errorInputClass = `${inputClass} border-red-400 focus:ring-red-300`;
 
 export default function AddressForm({ fields, setFields, errors = {}, disabled }: Props) {
-    const onChange = (k: keyof AddressFields, v: string) => setFields({ ...fields, [k]: v });
+    const onChange = (k: keyof AddressFields, v: string) =>
+        setFields({ ...fields, [k]: v });
 
-    // Helper to render an input field with icon and error handling
     const renderInput = (
         label: string,
         key: keyof AddressFields,
@@ -61,8 +62,10 @@ export default function AddressForm({ fields, setFields, errors = {}, disabled }
                     </span>
                 )}
             </span>
+
             <input
-                className={errors[key] ? errorInputClass : inputClass}
+                className={`${errors[key] ? errorInputClass : inputClass} 
+                ${errors[key] ? "focus:ring-red-400" : "focus:ring-[#8ED26B]"}`}
                 value={fields[key] || ""}
                 onChange={(e) => onChange(key, e.target.value)}
                 disabled={disabled}
@@ -70,10 +73,8 @@ export default function AddressForm({ fields, setFields, errors = {}, disabled }
                 maxLength={maxLength}
                 aria-label={label}
                 aria-invalid={!!errors[key]}
-                style={{
-                    focusRingColor: errors[key] ? "#f87171" : PRIMARY_COLOR, // Dynamic focus ring
-                }}
             />
+
             {errors[key] && (
                 <p className="text-xs text-red-600 mt-1 flex items-center animate-pulse">
                     <AlertCircle className="w-3 h-3 mr-1" />
@@ -90,33 +91,21 @@ export default function AddressForm({ fields, setFields, errors = {}, disabled }
                 Service Address
             </h3>
 
-            {/* Contact Information Section */}
+            {/* Contact Information */}
             <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-gray-700 border-b pb-2">Contact Information</h4>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {renderInput("Customer Full Name", "customer_name", <User className="w-4 h-4" style={{ color: ACCENT_COLOR }} />)}
-                    {renderInput(
-                        "Mobile Number",
-                        "mobile",
-                        <Phone className="w-4 h-4" style={{ color: ACCENT_COLOR }} />,
-                        false,
-                        "numeric",
-                        10
-                    )}
-                    {renderInput(
-                        "Alternate Mobile",
-                        "alternate_mobile",
-                        <Phone className="w-4 h-4" style={{ color: ACCENT_COLOR }} />,
-                        true,
-                        "numeric",
-                        10
-                    )}
+                    {renderInput("Mobile Number", "mobile", <Phone className="w-4 h-4" style={{ color: ACCENT_COLOR }} />, false, "numeric", 10)}
+                    {renderInput("Alternate Mobile", "alternate_mobile", <Phone className="w-4 h-4" style={{ color: ACCENT_COLOR }} />, true, "numeric", 10)}
                 </div>
             </div>
 
-            {/* Address Details Section */}
+            {/* Address Details */}
             <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-gray-700 border-b pb-2">Address Details</h4>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {renderInput("Flat / House / Plot No", "flat_no", <Home className="w-4 h-4" style={{ color: ACCENT_COLOR }} />)}
                     {renderInput("Floor", "floor", <Building className="w-4 h-4" style={{ color: ACCENT_COLOR }} />, true)}
@@ -126,14 +115,7 @@ export default function AddressForm({ fields, setFields, errors = {}, disabled }
                     {renderInput("Landmark", "landmark", <MapPin className="w-4 h-4" style={{ color: ACCENT_COLOR }} />, true)}
                     {renderInput("City / Town", "city", <MapPin className="w-4 h-4" style={{ color: ACCENT_COLOR }} />)}
                     {renderInput("State", "state", <MapPin className="w-4 h-4" style={{ color: ACCENT_COLOR }} />)}
-                    {renderInput(
-                        "Pincode",
-                        "pincode",
-                        <MapPin className="w-4 h-4" style={{ color: ACCENT_COLOR }} />,
-                        false,
-                        "numeric",
-                        6
-                    )}
+                    {renderInput("Pincode", "pincode", <MapPin className="w-4 h-4" style={{ color: ACCENT_COLOR }} />, false, "numeric", 6)}
                 </div>
             </div>
         </div>
