@@ -37,7 +37,10 @@ type Props = {
   service: ServiceItem;
   isOpen: boolean;
   onClose: () => void;
+  isLoading: boolean;
+  userEmail: string; // ✅ Add this
 };
+
 
 // --- New Address Type Definition (Mirroring the uploaded image) ---
 type ServiceAddress = {
