@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase-client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
-import AddressForm from "@/components/AddressForm";
 import {
     ShoppingCart,
     X,
@@ -65,6 +64,7 @@ type AddressFields = {
     state: string;
     pincode: string;
 };
+
 const SERVICEABLE_PINCODES = [
     "560091", "560037", "560016", "560065", "560024", "560094", "560092",
     "560001", "560051", "560025", "560030", "560002", "560060", "560059",
@@ -98,6 +98,150 @@ const loadRazorpay = (): Promise<void> =>
         script.onerror = () => reject(new Error("Razorpay SDK failed to load."));
         document.body.appendChild(script);
     });
+
+// Define AddressForm component here to accept the required props
+const AddressForm: React.FC<{
+    fields: AddressFields;
+    setFields: React.Dispatch<React.SetStateAction<AddressFields>>;
+    errors: { [key: string]: string };
+    disabled: boolean;
+}> = ({ fields, setFields, errors, disabled }) => {
+    const handleChange = (key: keyof AddressFields, value: string) => {
+        setFields(prev => ({ ...prev, [key]: value }));
+    };
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
+                <input
+                    type="text"
+                    value={fields.customer_name}
+                    onChange={(e) => handleChange('customer_name', e.target.value)}
+                    disabled={disabled}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${errors.customer_name ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.customer_name && <p className="text-red-500 text-sm mt-1">{errors.customer_name}</p>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
+                <input
+                    type="tel"
+                    value={fields.mobile}
+                    onChange={(e) => handleChange('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    disabled={disabled}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${errors.mobile ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.mobile && <p className="text-red-500 text-sm mt-1">{errors.mobile}</p>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Mobile</label>
+                <input
+                    type="tel"
+                    value={fields.alternate_mobile}
+                    onChange={(e) => handleChange('alternate_mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    disabled={disabled}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Flat / House / Plot No *</label>
+                <input
+                    type="text"
+                    value={fields.flat_no}
+                    onChange={(e) => handleChange('flat_no', e.target.value)}
+                    disabled={disabled}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${errors.flat_no ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.flat_no && <p className="text-red-500 text-sm mt-1">{errors.flat_no}</p>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+                <input
+                    type="text"
+                    value={fields.floor}
+                    onChange={(e) => handleChange('floor', e.target.value)}
+                    disabled={disabled}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Building Name</label>
+                <input
+                    type="text"
+                    value={fields.building_name}
+                    onChange={(e) => handleChange('building_name', e.target.value)}
+                    disabled={disabled}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Street / Locality *</label>
+                <input
+                    type="text"
+                    value={fields.street}
+                    onChange={(e) => handleChange('street', e.target.value)}
+                    disabled={disabled}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${errors.street ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.street && <p className="text-red-500 text-sm mt-1">{errors.street}</p>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Area / Zone</label>
+                <input
+                    type="text"
+                    value={fields.area_zone}
+                    onChange={(e) => handleChange('area_zone', e.target.value)}
+                    disabled={disabled}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Landmark</label>
+                <input
+                    type="text"
+                    value={fields.landmark}
+                    onChange={(e) => handleChange('landmark', e.target.value)}
+                    disabled={disabled}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City / Town *</label>
+                <input
+                    type="text"
+                    value={fields.city}
+                    onChange={(e) => handleChange('city', e.target.value)}
+                    disabled={disabled}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${errors.city ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                <input
+                    type="text"
+                    value={fields.state}
+                    onChange={(e) => handleChange('state', e.target.value)}
+                    disabled={disabled}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${errors.state ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
+                <input
+                    type="text"
+                    value={fields.pincode}
+                    onChange={(e) => handleChange('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    disabled={disabled}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${errors.pincode ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.pincode && <p className="text-red-500 text-sm mt-1">{errors.pincode}</p>}
+            </div>
+        </div>
+    );
+};
 
 // ---------------- CartItemCard (Kept as is for functionality) ----------------
 const CartItemCard: React.FC<{
@@ -530,7 +674,6 @@ export default function CartPage() {
         );
 
     if (error)
-        if (error)
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center py-20">
                 <div className="p-8 bg-red-50 border border-red-300 text-red-700 rounded-xl flex flex-col items-center shadow-lg max-w-2xl mx-auto">
@@ -568,7 +711,7 @@ export default function CartPage() {
     // Main view (Stacked Layout)
     return (
         <div className="min-h-screen" style={{ backgroundColor: LIGHT_BG }}>
-<div className="max-w-6xl mx-auto px-4 py-12 sm:py-16">
+            <div className="max-w-6xl mx-auto px-4 py-12 sm:py-16">
                 {/* --- HEADER --- */}
                 <div className="flex items-center bg-white p-4 sm:p-6 lg:p-8 rounded-3xl shadow-2xl mb-6 sm:mb-10 border-t-8" style={{ borderColor: PRIMARY_COLOR }}>
                     <ShoppingCart className={`w-8 h-8 sm:w-10 sm:h-10 mr-4`} style={{ color: PRIMARY_COLOR }} />
