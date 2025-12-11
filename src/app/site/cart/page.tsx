@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase-client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
-import AddressForm, { AddressFields } from "@/components/AddressForm";
+import AddressForm from "@/components/AddressForm";
 import {
     ShoppingCart,
     X,
@@ -50,6 +50,21 @@ type CartItem = {
     isUpdating: boolean;
 };
 
+// Add this type definition at the top of the file, after imports
+type AddressFields = {
+    customer_name: string;
+    mobile: string;
+    alternate_mobile: string;
+    flat_no: string;
+    floor: string;
+    building_name: string;
+    street: string;
+    area_zone: string;
+    landmark: string;
+    city: string;
+    state: string;
+    pincode: string;
+};
 const SERVICEABLE_PINCODES = [
     "560091", "560037", "560016", "560065", "560024", "560094", "560092",
     "560001", "560051", "560025", "560030", "560002", "560060", "560059",
