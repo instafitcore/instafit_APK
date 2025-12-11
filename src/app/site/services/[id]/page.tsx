@@ -74,7 +74,7 @@ export type ServiceReview = {
 type ServiceStats = {
   averageRating: number | null;
   reviewCount: number;
-reviews: SubcategoryReview[];
+reviews: ServiceReview[];
 };
 
 // ------------------- UTILITY FUNCTIONS -------------------
