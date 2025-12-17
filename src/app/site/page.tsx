@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase-client";
 // ====================================================================
 // 1. TYPE DEFINITIONS
 // ====================================================================
+// Define TypeScript interfaces for data structures used in the component
 type Category = {
   id: number;
   category: string;
@@ -59,7 +60,6 @@ type FAQItem = {
   answer: string;
 };
 
-// NEW: Testimonial Type
 // NEW: Testimonial Type (Matches Supabase Schema)
 type TestimonialItem = {
   id: number;
@@ -72,7 +72,7 @@ type TestimonialItem = {
 // ====================================================================
 // 2. STATIC DATA
 // ====================================================================
-
+// Static data arrays for slides, why choose us items, and FAQ items
 const SLIDES_DATA: Slide[] = [
   {
     id: 1,
@@ -140,15 +140,15 @@ const FAQ_DATA: FAQItem[] = [
   },
 ];
 
-
+// Brand color constant for consistent styling
 const BRAND_COLOR = "#8ed26b";
 
 // ====================================================================
 // 3. SUBCATEGORY CARD SUB-COMPONENT (Inline)
 // ====================================================================
-// (No changes here, mobile responsiveness is managed by the grid in HomePage)
-
+// Component to render individual subcategory cards with image, title, category, and description
 const SubcategoryCard: React.FC<{ subcategory: Subcategory }> = ({ subcategory }) => {
+  // Placeholder component for when no image is available
   const NoImagePlaceholder: React.FC = () => (
     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4">
       <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +203,7 @@ const SubcategoryCard: React.FC<{ subcategory: Subcategory }> = ({ subcategory }
 // ====================================================================
 // 4. WHY CHOOSE US CARD SUB-COMPONENT (Inline)
 // ====================================================================
-
+// Component to render individual "Why Choose Us" cards with icon, title, and description
 const WhyChooseUsCard: React.FC<WhyChooseUsItem> = ({
   iconSrc,
   alt,
@@ -236,11 +236,12 @@ const WhyChooseUsCard: React.FC<WhyChooseUsItem> = ({
 // ====================================================================
 // 5. HERO CAROUSEL SUB-COMPONENT (Inline)
 // ====================================================================
-
+// Component for the hero carousel with auto-sliding, navigation, and indicators
 const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const slideTimer = useRef<number | null>(null);
 
+  // Function to start the auto-slide timer
   const startTimer = useCallback(() => {
     if (slideTimer.current) clearInterval(slideTimer.current);
     slideTimer.current = window.setInterval(() => {
@@ -248,6 +249,7 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
     }, 5000);
   }, [slides.length]);
 
+  // Effect to start timer on mount and clean up on unmount
   useEffect(() => {
     startTimer();
     return () => {
@@ -255,11 +257,13 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
     };
   }, [startTimer]);
 
+  // Function to go to a specific slide and reset timer
   const goToSlide = (i: number) => {
     startTimer(); // Reset timer on manual navigation
     setCurrentSlide(i);
   };
 
+  // Function to navigate to next or previous slide
   const navigate = (direction: -1 | 1) => {
     const nextIndex = (currentSlide + direction + slides.length) % slides.length;
     goToSlide(nextIndex);
@@ -346,10 +350,11 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
 // ====================================================================
 // 6. FAQ ACCORDION SUB-COMPONENT (Inline for interactivity)
 // ====================================================================
-
+// Component for the FAQ accordion with expandable questions and answers
 const FAQAccordion: React.FC<{ items: FAQItem[] }> = ({ items }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
+  // Function to toggle the open state of an FAQ item
   const handleToggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
@@ -425,15 +430,64 @@ const FAQAccordion: React.FC<{ items: FAQItem[] }> = ({ items }) => {
   );
 };
 
+// ====================================================================
+// 7. NEW: WHY INSTAFITCORE SECTION SUB-COMPONENT
+// ====================================================================
+// New section component for "Why InstaFitCore?" with image on left and text on right, no icons
+const WhyInstaFitCoreSection: React.FC = () => (
+  <section className="py-12 sm:py-20 bg-gradient-to-b from-white to-gray-50">
+    <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+
+      {/* LEFT SIDE CONTENT */}
+      <div>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-800 mb-3 sm:mb-4">
+          Why InstaFitCore?
+        </h2>
+
+        <p className="text-gray-500 text-base sm:text-lg mb-8 sm:mb-10">
+          With InstaFitCore, you can easily:
+        </p>
+
+        <ul className="space-y-4 sm:space-y-5 text-gray-700 text-base sm:text-lg">
+          <li className="flex items-start">
+            <span className="text-green-600 mr-3">•</span>
+            Book furniture installation & repair services
+          </li>
+          <li className="flex items-start">
+            <span className="text-green-600 mr-3">•</span>
+            Request customized modular furniture & kitchens
+          </li>
+          <li className="flex items-start">
+            <span className="text-green-600 mr-3">•</span>
+            Manage relocations, packers & movers
+          </li>
+          <li className="flex items-start">
+            <span className="text-green-600 mr-3">•</span>
+            Track your service requests in one place
+          </li>
+        </ul>
+      </div>
+
+      {/* RIGHT SIDE IMAGE */}
+      <div className="hidden md:flex justify-center">
+        <div className="rounded-3xl overflow-hidden shadow-xl border border-gray-100 w-full max-w-[420px] h-[380px]">
+          <img
+            src="/why-instafitcore-img.png"
+            alt="Why InstaFitCore Illustration"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+
+    </div>
+  </section>
+);
+
 
 // ====================================================================
-// 7. NEW: TESTIMONIAL SECTION SUB-COMPONENT
+// 8. NEW: TESTIMONIAL SECTION SUB-COMPONENT (DYNAMIC)
 // ====================================================================
-
-// ====================================================================
-// 7. NEW: TESTIMONIAL SECTION SUB-COMPONENT (DYNAMIC)
-// ====================================================================
-
+// Component for star rating display
 const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
   const stars = Array(5).fill(0).map((_, i) => (
     <svg
@@ -449,6 +503,7 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
   return <div className="flex justify-center mb-3">{stars}</div>;
 };
 
+// Component for individual testimonial cards
 const TestimonialCard: React.FC<TestimonialItem> = ({ message, name, rating }) => (
   <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-gray-100 flex flex-col items-center text-center h-full">
     {/* Placeholder Avatar and Rating based on new schema */}
@@ -469,11 +524,12 @@ const TestimonialCard: React.FC<TestimonialItem> = ({ message, name, rating }) =
   </div>
 );
 
-// 7. NEW: TESTIMONIAL SECTION SUB-COMPONENT (DYNAMIC)
+// Main testimonial section component that fetches data from Supabase
 const TestimonialSection: React.FC = () => {
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Effect to fetch testimonials on component mount
   useEffect(() => {
     // Fetch logic as currently written
     const fetchTestimonials = async () => {
@@ -493,16 +549,18 @@ const TestimonialSection: React.FC = () => {
     fetchTestimonials();
   }, []);
 
+  // Show loading state while fetching
   if (loading) {
     // Simple loading state
     return <div className="text-center py-12 text-gray-500">Loading testimonials...</div>
   }
   
+  // Don't render section if no testimonials
   if (testimonials.length === 0) {
     return null; // Don't render section if no data
   }
 
-  // Actual rendering logic
+  // Render the testimonial section
   return (
     <section className="py-12 sm:py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6">
@@ -520,16 +578,15 @@ const TestimonialSection: React.FC = () => {
   );
 };
 
-
 // ====================================================================
-// 8. MAIN HOME PAGE COMPONENT
+// 9. MAIN HOME PAGE COMPONENT
 // ====================================================================
-
+// Main component for the home page, orchestrating all sections
 export default function HomePage() {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch subcategories data
+  // Fetch subcategories data on component mount
   useEffect(() => {
     const fetchSubcategories = async () => {
       // Changed limit to 4 as requested
@@ -556,6 +613,7 @@ export default function HomePage() {
     fetchSubcategories();
   }, []);
 
+  // Show loading state while fetching subcategories
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -564,6 +622,7 @@ export default function HomePage() {
     );
   }
 
+  // Main render return
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
 
@@ -759,7 +818,6 @@ export default function HomePage() {
               <div className="mt-6">
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-800">SimplyLogistics</h3>
                 <p className="text-gray-500 mt-1">Logistics and Supply Chain</p>
-
                 {/* Badge */}
                 <span className="inline-block mt-4 bg-green-100 text-green-700 text-sm font-semibold px-4 py-1.5 rounded-full border border-green-200">
                   Verified Partner
@@ -770,6 +828,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* --- NEW: WHY INSTAFITCORE SECTION --- */}
+      <WhyInstaFitCoreSection />
 
       {/* --- FAQ SECTION --- */}
       <FAQAccordion items={FAQ_DATA} />

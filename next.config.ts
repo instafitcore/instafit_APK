@@ -3,12 +3,13 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "professionalhomeandofficeservice.water.blog",
+        protocol: "http",
+        hostname: "googleusercontent.com",
+        pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "cleaningwithlove.ca",
+        hostname: "images.unsplash.com",
       },
       {
         protocol: "https",
@@ -16,8 +17,16 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "pwjdjqcbleywuekdinqc.supabase.co", // <-- add this
-        pathname: "/**", // allow all paths
+        hostname: "pwjdjqcbleywuekdinqc.supabase.co",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "professionalhomeandofficeservice.water.blog",
+      },
+      {
+        protocol: "https",
+        hostname: "cleaningwithlove.ca",
       },
     ],
   },

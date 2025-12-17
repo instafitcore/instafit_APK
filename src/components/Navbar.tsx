@@ -1,18 +1,21 @@
-// FullNavbar.tsx (Combined Desktop + Mobile Navbar)
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase-client";
 import {
-  User as UserIcon,
+  User as UserIcon, UserCircle,
+  ChevronDown,
   Menu,
   X,
-  Search,
-  MapPin,
+  Search, LogOut,
   Heart,
   ShoppingCart,
+  Loader2,
+  CircleX,
+  ChevronRight,
+  Settings, // Icon for technical services
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import AuthModal from "@/components/AuthModal";
@@ -23,413 +26,436 @@ type Category = {
   image_url: string | null;
 };
 
+type Subcategory = {
+  id: number;
+  subcategory: string;
+};
+
+type SearchResult = {
+  id: number | string;
+  name: string;
+  type: "category" | "subcategory" | "service_type";
+  parent_category?: string;
+  customUrl?: string; // For specialized links like typeId=1
+};
+
 type AuthMode = "login" | "register";
 
 export default function FullNavbar() {
-  // Shared states
   const [user, setUser] = useState<any>(null);
-  const [wishlistCount, setWishlistCount] = useState(0);
-  const [cartCount, setCartCount] = useState(0);
-
   const [showAuth, setShowAuth] = useState(false);
   const [mode, setMode] = useState<AuthMode>("login");
-
   const pathname = usePathname();
 
-  // Desktop specific
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-
-  // Mobile specific
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  // Profile dropdown state
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  // Scroll shadow behaviour
+  // Search States
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Removed hover states for subcategories since dropdown is removed
+
+  // Close search on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Reset states on route change
+  useEffect(() => {
+    setShowDropdown(false);
+    setSearch("");
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Handle scroll shadow
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 80);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Fetch categories (desktop only)
+
+  // Removed fetch subcategories effect since dropdown is removed
+
+  // --- LOGIC FOR INSTALLATION / REPAIR SEARCH ---
+  // --- FIXED LOGIC FOR INSTALLATION / REPAIR SEARCH ---
   useEffect(() => {
-    const fetchCategories = async () => {
-      const { data } = await supabase
-        .from("categories")
-        .select("id, category, image_url")
-        .eq("is_active", true)
-        .order("id", { ascending: true });
+    const value = search.trim().toLowerCase();
 
-      setCategories(data || []);
-      setLoadingCategories(false);
-    };
+    if (value.length === 0) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
 
-    fetchCategories();
-  }, []);
+    setShowDropdown(true);
 
-  // User + auth listener
-  useEffect(() => {
-    const init = async () => {
-      const res = await supabase.auth.getUser();
-      setUser(res.data.user ?? null);
-    };
-    init();
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
 
-    const { data } = supabase.auth.onAuthStateChange((_e, session) =>
-      setUser(session?.user ?? null)
-    );
+      const results: SearchResult[] = [];
 
-    return () => data.subscription.unsubscribe();
-  }, []);
+      // 🔥 INSTALLATION — SHOW FROM "i", "in", "ins"
+      if ("installation".startsWith(value) || value.startsWith("ins")) {
+        results.push({
+          id: "install",
+          name: "Installation Services",
+          type: "service_type",
+          customUrl: "/site/services?typeId=1",
+        });
+      }
 
-  // Fetch wishlist + cart counts
-  useEffect(() => {
-    if (!user) return;
+      // 🔧 REPAIR
+      if (
+        "repair".startsWith(value) ||
+        value.includes("fix") ||
+        value.includes("maint")
+      ) {
+        results.push({
+          id: "repair",
+          name: "Repair & Maintenance Services",
+          type: "service_type",
+          customUrl: "/site/services?typeId=2",
+        });
+      }
 
-    const fetchCounts = async () => {
-      const wish = await supabase
-        .from("wishlist")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      setWishlistCount(wish.count || 0);
+      // 🧹 DISMANTLING
+      if (
+        "dismantling".startsWith(value) ||
+        value.includes("remove")
+      ) {
+        results.push({
+          id: "dismantle",
+          name: "Dismantling Services",
+          type: "service_type",
+          customUrl: "/site/services?typeId=3",
+        });
+      }
 
-      const cart = await supabase
-        .from("cart")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      setCartCount(cart.count || 0);
-    };
+      // 🗄️ DATABASE SEARCH (SECONDARY)
+      try {
+        const [catRes, subRes] = await Promise.all([
+          supabase
+            .from("categories")
+            .select("id, category")
+            .ilike("category", `%${value}%`)
+            .limit(3),
 
-    fetchCounts();
-  }, [user]);
+          supabase
+            .from("subcategories")
+            .select("id, subcategory, category")
+            .ilike("subcategory", `%${value}%`)
+            .limit(5),
+        ]);
 
-  const handleSignOut = async () => {
+        const dbResults: SearchResult[] = [
+          ...(catRes.data || []).map((c) => ({
+            id: c.id,
+            name: c.category,
+            type: "category",
+          })),
+          ...(subRes.data || []).map((s) => ({
+            id: s.id,
+            name: s.subcategory,
+            type: "subcategory",
+            parent_category: s.category,
+          })),
+        ];
+
+        setSearchResults([...results, ...dbResults]);
+      } catch (err) {
+        console.error(err);
+        setSearchResults(results);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 150); // faster response
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const handleLogout = async () => {
     await supabase.auth.signOut();
-    setShowProfileDropdown(false);
+    setProfileOpen(false);
   };
+
+  // Function to get the correct href based on category name
+  const getCategoryHref = (category: string, id: number) => {
+    const lowerCat = category.toLowerCase();
+    if (lowerCat === "customized modular furniture") {
+      return "/site/request/customized-modular-furniture";
+    } else if (lowerCat === "customized modular kitchen") {
+      return "/site/request/customized-modular-kitchen";
+    } else if (lowerCat === "packer and movers") {
+      return "/site/request/packer-and-movers";
+    } else if (lowerCat === "b2b service requirement request") {
+      return "/site/request/b2b-service-requirement";
+    } else {
+      return `/site/category/${id}`;
+    }
+  };
+
+
+  const staticCategories = [
+    {
+      id: "furniture-service",
+      name: "Furniture Service",
+      image_url: "/furniture-service.jpeg", // replace with actual image path
+      link: "/site/category",
+    },
+    {
+      id: "custom-furniture",
+      name: "Customized Modular Furniture",
+      image_url: "/custom-furniture.jpg", // replace with actual image path
+      link: "/site/request/customized-modular-furniture",
+    },
+    {
+      id: "custom-kitchen",
+      name: "Customized Modular Kitchen",
+      image_url: "/custom-kitchen.jpg",
+      link: "/site/request/customized-modular-kitchen",
+    },
+    {
+      id: "packer-movers",
+      name: "Packer and Movers",
+      image_url: "/packer-movers.jpg",
+      link: "/site/request/packer-and-movers",
+    },
+    {
+      id: "b2b-request",
+      name: "B2B Service",
+      image_url: "/b2b-request.jpeg",
+      link: "/site/request/b2b-service-requirement",
+    },
+  ];
+
 
   return (
     <>
-      {/* ---------------------------- NAVBAR ---------------------------- */}
-      <header
-        className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-shadow duration-300 ${isScrolled ? "shadow-md" : ""
-          }`}
-      >
-        {/* DESKTOP NAVBAR */}
+      <header className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-all ${isScrolled ? "shadow-md" : ""}`}>
         <div className="hidden md:flex max-w-7xl mx-auto px-4 py-3 items-center gap-6">
-
-          {/* Logo */}
           <Link href="/site" className="flex items-center gap-3 shrink-0">
-            <div className="w-14 h-14 shrink-0">
-              <Image
-                src="/logoInstaFit.jpg"
-                alt="InstaFitCore Logo"
-                width={66}
-                height={66}
-                className="w-full h-full object-contain"
-              />
+            <div className="w-14 h-14 relative shrink-0">
+              <Image src="/logoInstaFit.jpg" alt="Logo" width={66} height={66} className="w-full h-full object-contain" />
             </div>
-            <div className="leading-tight hidden sm:block">
-              <div className="text-xl font-bold" style={{ color: "#8ed26b" }}>
-                INSTAFITCORE
-              </div>
+            <div className="leading-tight">
+              <div className="text-xl font-bold text-[#8ed26b]">INSTAFITCORE</div>
               <div className="text-xs text-black">One Stop Solutions</div>
             </div>
           </Link>
 
-          {/* Search */}
-          <div className="flex-1 max-w-md mx-4 hidden lg:block">
+          {/* SEARCH BOX */}
+          <div className="flex-1 max-w-md mx-4 relative" ref={searchRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="What are you looking for?"
-                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-[#8ed26b]"
+                onFocus={() => search.length >= 2 && setShowDropdown(true)}
+                placeholder="Search Installations, Repairs..."
+                className="w-full pl-10 pr-10 py-2 rounded-full border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-[#8ed26b] outline-none"
               />
+              {search && <CircleX className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer" onClick={() => setSearch("")} />}
+              {isSearching && <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />}
             </div>
+
+            {showDropdown && (
+              <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden z-[100]">
+                {searchResults.length > 0 ? (
+                  searchResults.map((res) => (
+                    <Link
+                      key={`${res.type}-${res.id}`}
+                      href={res.customUrl || (res.type === "category" ? `/site/category/${res.id}` : `/site/services/${res.id}`)}
+                      className={`flex flex-col px-4 py-3 hover:bg-[#f0f9eb] border-b last:border-0 ${res.type === "service_type" ? "bg-green-50/50" : "" // Highlight department links
+                        }`} >
+                      <div className="flex items-center gap-2">
+                        {res.type === "service_type" && <Settings className="w-3 h-3 text-[#8ed26b]" />}
+                        <span className={`text-sm font-semibold ${res.type === "service_type" ? "text-[#8ed26b]" : "text-gray-800"}`}>
+                          {res.name}
+                        </span>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                        {res.type === "service_type" ? "Department" : res.type === "category" ? "Category" : `In ${res.parent_category}`}
+                      </span>
+                    </Link>
+                  ))
+                ) : !isSearching && <div className="p-4 text-center text-sm text-gray-500">No results found</div>}
+              </div>
+            )}
           </div>
 
-          {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-6">
-            <Link href="/site">Home</Link>
-            <Link href="/site/services">Services</Link>
-            <Link href="/site/about">About</Link>
-            <Link href="/site/contact">Contact</Link>
+          <nav className="hidden lg:flex items-center gap-6 font-medium text-gray-700">
+            <Link href="/site" className="hover:text-[#8ed26b]">Home</Link>
+
+            <Link href="/site/services" className="hover:text-[#8ed26b]">
+              Services
+            </Link>
+
+            <Link href="/site/about" className="hover:text-[#8ed26b]">
+              About Us
+            </Link>
+
+            <Link href="/site/contact" className="hover:text-[#8ed26b]">
+              Contact Us
+            </Link>
           </nav>
 
-          {/* Right Icons */}
-          <div className="flex items-center gap-4 shrink-0">
+
+          <div className="flex items-center gap-4">
             {!user ? (
-              <button
-                onClick={() => {
-                  setMode("login");
-                  setShowAuth(true);
-                }}
-                className="hidden sm:block px-4 py-2 rounded-full text-white font-semibold"
-                style={{ backgroundColor: "#8ed26b" }}
-              >
-                Sign Up / Sign In
-              </button>
+              <button onClick={() => { setMode("login"); setShowAuth(true); }} className="px-5 py-2 rounded-full text-white font-semibold bg-[#8ed26b]">Sign In</button>
             ) : (
               <div className="flex items-center gap-4">
-
-                <Link href="/site/wishlist" className="relative">
-                  <Heart className="w-6 h-6 text-gray-700" />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">
-                      {wishlistCount}
-                    </span>
-                  )}
-                </Link>
-
-                <Link href="/site/cart" className="relative">
-                  <ShoppingCart className="w-6 h-6 text-gray-700" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 rounded-full">
-                      {cartCount}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Profile Dropdown */}
-                <div className="relative">
+                <Link href="/site/wishlist"><Heart className="w-6 h-6 text-gray-700" /></Link>
+                <Link href="/site/cart"><ShoppingCart className="w-6 h-6 text-gray-700" /></Link>
+                <div className="relative" ref={profileRef}>
                   <button
-                    onClick={() =>
-                      setShowProfileDropdown(!showProfileDropdown)
-                    }
-                    className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center"
+                    onClick={() => setProfileOpen(!profileOpen)}
+                    className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 hover:border-[#8ed26b]"
                   >
-                    <UserIcon className="w-5 h-5" />
+                    <UserIcon className="w-5 h-5 text-gray-600" />
                   </button>
 
-                  {showProfileDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border shadow-xl rounded-lg">
-                      <Link
-                        href="/site/profile"
-                        className="flex px-4 py-3 gap-2"
-                        onClick={() => setShowProfileDropdown(false)}
-                      >
-                        <UserIcon className="w-4 h-4 text-green-600" />
-                        Profile
-                      </Link>
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-3 w-64 bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden z-50">
 
-                      <Link
-                        href="/site/order-tracking"
-                        className="flex px-4 py-3 gap-2"
-                        onClick={() => setShowProfileDropdown(false)}
-                      >
-                        <MapPin className="w-4 h-4 text-green-600" />
-                        Track Order
-                      </Link>
+                      {/* USER INFO */}
+                      <div className="px-5 py-4 border-b bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#8ed26b]/20 flex items-center justify-center">
+                            <UserIcon className="w-5 h-5 text-[#8ed26b]" />
+                          </div>
+                          <div className="leading-tight">
+                            <p className="text-sm font-semibold text-gray-800">
+                              {user?.user_metadata?.full_name || "My Account"}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate max-w-[160px]">
+                              {user?.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                      <button
-                        onClick={handleSignOut}
-                        className="flex w-full px-4 py-3 gap-2"
-                      >
-                        <X className="w-4 h-4 text-green-600" />
-                        Sign Out
-                      </button>
+                      {/* MENU ITEMS */}
+                      <div className="py-2">
+                        <Link
+                          href="/site/profile"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 hover:bg-[#f0f9eb]"
+                        >
+                          <UserIcon className="w-4 h-4 text-gray-500" />
+                          Profile
+                        </Link>
+
+                        <Link
+                          href="/site/order-tracking"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 hover:bg-[#f0f9eb]"
+                        >
+                          <ChevronRight className="w-4 h-4 text-gray-500" />
+                          Order Tracking
+                        </Link>
+                      </div>
+
+                      {/* LOGOUT */}
+                      <div className="border-t">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-3 w-full px-5 py-3 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </div>
                     </div>
                   )}
+
                 </div>
+
+              </div>
+            )}
+            <button onClick={() => setMobileOpen(true)} className="md:hidden"><Menu className="w-6 h-6" /></button>
+          </div>
+        </div>
+
+        {/* MOBILE OVERLAY */}
+        <div className={`fixed inset-0 z-[100] bg-white transition-transform ${mobileOpen ? "translate-x-0" : "translate-x-full"} md:hidden`}>
+          <div className="p-4 flex justify-between items-center border-b">
+            <span className="font-bold text-[#8ed26b]">Menu</span>
+            <X className="w-6 h-6" onClick={() => setMobileOpen(false)} />
+          </div>
+          <div className="p-6 flex flex-col gap-6">
+            <Link href="/site" className="text-lg font-semibold">Home</Link>
+
+            <Link href="/site/services" className="text-lg font-semibold">
+              Services
+            </Link>
+
+            <Link href="/site/about-us" className="text-lg font-semibold">
+              About Us
+            </Link>
+
+            <Link href="/site/contact-us" className="text-lg font-semibold">
+              Contact Us
+            </Link>
+
+            {/* PROFILE & TRACKING LINKS */}
+            {user && (
+              <div className="mt-8 flex flex-col gap-4 border-t pt-6">
+                <Link href="/site/profile" className="text-gray-800 text-base font-medium">Profile</Link>
+                <Link href="/site/order-tracking" className="text-gray-800 text-base font-medium">Order Tracking</Link>
               </div>
             )}
           </div>
         </div>
-
-        {/* ------------------ MOBILE NAVBAR ------------------ */}
-        <div className="flex md:hidden items-center justify-between px-4 py-3 bg-white border-b shadow-sm sticky top-0 z-50">
-
-          {/* LOGO */}
-          <Link href="/site" className="flex items-center gap-2">
-            <div className="w-12 h-12 relative">
-              <Image
-                src="/logoInstaFit.jpg"
-                alt="InstaFitCore Logo"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <span className="font-bold text-lg" style={{ color: "#8ed26b" }}>
-              INSTAFITCORE
-            </span>
-          </Link>
-
-          {/* RIGHT ICONS */}
-          <div className="flex items-center gap-4">
-
-            {/* Wishlist */}
-            {user && (
-              <Link href="/site/wishlist" className="relative p-2 rounded-full hover:bg-gray-100 transition">
-                <Heart className="w-6 h-6 text-gray-700" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    {wishlistCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            {/* Cart */}
-            {user && (
-              <Link href="/site/cart" className="relative p-2 rounded-full hover:bg-gray-100 transition">
-                <ShoppingCart className="w-6 h-6 text-gray-700" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="p-2 rounded-full hover:bg-gray-100 transition"
-              aria-label="Open menu"
-            >
-              <Menu className="w-6 h-6 text-gray-700" />
-            </button>
-          </div>
-        </div>
-
-
-        {/* MOBILE DRAWER */}
-        {mobileOpen && (
-          <div
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 bg-black/40 z-40"
-          />
-        )}
-
-        <div
-          className={`fixed top-0 right-0 h-full w-3/4 bg-white z-50 shadow-xl transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "translate-x-full"
-            }`}
-        >
-          {/* Drawer Header */}
-          <div className="flex justify-between px-4 py-4 border-b">
-            <span className="text-lg font-semibold">Menu</span>
-            <button onClick={() => setMobileOpen(false)}>
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="p-4">
-            <div className="flex items-center border rounded-lg px-3 py-2 gap-2">
-              <Search className="w-5 h-5 text-gray-400" />
-              <input
-                placeholder="Search here..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full outline-none text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Drawer Links */}
-          <nav className="px-4 flex flex-col gap-3">
-            <Link href="/site" onClick={() => setMobileOpen(false)}>Home</Link>
-            <Link href="/site/services" onClick={() => setMobileOpen(false)}>Our Services</Link>
-            <Link href="/site/about" onClick={() => setMobileOpen(false)}>About Us</Link>
-            <Link href="/site/contact" onClick={() => setMobileOpen(false)}>Contact Us</Link>
-            <Link href="/site/order-tracking" onClick={() => setMobileOpen(false)}>Order Tracking</Link>
-          </nav>
-
-          {/* Auth Button */}
-          {!user && (
-            <div className="px-4 mt-6">
-              <button
-                onClick={() => {
-                  setMode("login");
-                  setShowAuth(true);
-                  setMobileOpen(false);
-                }}
-                className="w-full py-3 rounded-full font-semibold text-white"
-                style={{ backgroundColor: "#8ed26b" }}
-              >
-                Sign Up / Sign In
-              </button>
-            </div>
-          )}
-
-          {/* Bottom Icons */}
-          {user && (
-            <div className="mt-8 px-6 flex flex-col gap-4 border-t pt-4">
-
-              <Link
-                href="/site/profile"
-                onClick={() => setMobileOpen(false)}
-                className="text-gray-800 text-base font-medium"
-              >
-                Profile
-              </Link>
-
-              <Link
-                href="/site/order-tracking"
-                onClick={() => setMobileOpen(false)}
-                className="text-gray-800 text-base font-medium"
-              >
-                Order Tracking
-              </Link>
-
-            </div>
-          )}
-
-
-        </div>
       </header>
 
-      {/* Category carousel only on homepage */}
+      {/* CATEGORY BAR (Only on Home) */}
       {pathname === "/site" && (
-        <div className="sticky top-[72px] z-40 bg-gray-50 border-t border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 py-6 overflow-x-auto">
-            <div className="flex gap-12 justify-center min-w-max">
-              {loadingCategories ? (
-                <div className="text-center text-gray-500">Loading categories...</div>
-              ) : (
-                categories
-                  .filter((cat) =>
-                    cat.category.toLowerCase().includes(search.toLowerCase())
-                  )
-                  .map((cat) => (
-                    <Link
-                      key={cat.id}
-                      href={`/site/category/${cat.id}`}
-                      className="flex flex-col items-center group cursor-pointer hover:scale-105 transition-transform duration-200 px-2"
-                    >
-                      <div className={`rounded-full overflow-hidden bg-gradient-to-br from-green-100 to-blue-100 shadow-md flex items-center justify-center transition-all duration-500 ${isScrolled ? "w-0 h-0 p-0 opacity-0" : "w-20 h-20 p-2 opacity-100"}`}>
-                        {cat.image_url && !isScrolled && (
-                          <Image
-                            src={cat.image_url}
-                            alt={cat.category}
-                            width={80}
-                            height={80}
-                            className="w-full h-full object-cover rounded-full"
-                          />
-                        )}
+        <div className="sticky top-[72px] z-40 bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 py-5">
+            <div className="flex gap-10 justify-center min-w-max relative">
+              <div className="flex gap-10 justify-center min-w-max relative">
+                {staticCategories.map((item) => (
+                  <div key={item.id} className="relative">
+                    <Link href={item.link} className="flex flex-col items-center group">
+                      <div className={`rounded-full border-2 border-transparent group-hover:border-[#8ed26b] transition-all overflow-hidden ${isScrolled ? "w-0 h-0 opacity-0" : "w-16 h-16 md:w-20 md:h-20"}`}>
+                        <Image
+                          src={item.image_url}
+                          alt={item.name}
+                          width={80}
+                          height={80}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <p className="font-semibold text-gray-800 text-center mt-3 text-sm group-hover:text-green-600 transition-colors duration-200">
-                        {cat.category}
+                      <p className="font-semibold text-gray-800 text-xs mt-2 group-hover:text-[#8ed26b] text-center">
+                        {item.name}
                       </p>
+
                     </Link>
-                  ))
-              )}
+                  </div>
+                ))}
+              </div>
 
             </div>
           </div>
         </div>
       )}
 
-      {/* Auth Modal */}
-      <AuthModal
-        showAuth={showAuth}
-        setShowAuth={setShowAuth}
-        initialMode={mode}
-      />
+      <AuthModal showAuth={showAuth} setShowAuth={setShowAuth} initialMode={mode} />
     </>
   );
 }

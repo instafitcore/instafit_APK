@@ -11,3 +11,12 @@ body {
   border-radius: 12px;
   margin-top: 20px;
 }
+
+.input {
+  @apply w-full border border-gray-300 rounded-lg px-4 py-2
+  focus:outline-none focus:ring-2 focus:ring-[#8ed26b];
+}
+
+.form-heading {
+  @apply text-lg font-semibold text-gray-800 mb-4 border-b pb-2;
+}

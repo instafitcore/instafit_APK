@@ -33,7 +33,7 @@ export default function AuthModal({
   const { toast } = useToast(); // <-- fixed
 
   // OTP related
-  const OTP_LEN = 8; // 4-digit code
+  const OTP_LEN = 6; // 8-digit code
   const [otp, setOtp] = useState<string[]>(Array(OTP_LEN).fill(""));
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -165,7 +165,7 @@ export default function AuthModal({
         setSentTo(email);
         setMode("verify");
         setOtp(Array(OTP_LEN).fill(""));
-        setResendTimer(30);
+        setResendTimer(600);
       }
     } catch (err: any) {
       setError(err?.message || "Error sending OTP");
@@ -184,7 +184,7 @@ export default function AuthModal({
     clearAlerts();
     const code = fullOtpString();
     if (code.length !== OTP_LEN) {
-      setError("Enter the 4-digit code");
+      setError("Enter the 8-digit code");
       return;
     }
     if (!sentTo) {
@@ -213,6 +213,15 @@ export default function AuthModal({
       setIsVerifying(false);
     }
   };
+
+  const formatTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  const mm = m.toString().padStart(2, "0");
+  const ss = s.toString().padStart(2, "0");
+  return `${mm}:${ss}`;
+};
+
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData("Text").replace(/\D/g, "").slice(0, OTP_LEN);
@@ -262,10 +271,10 @@ export default function AuthModal({
             </h2>
             <p className="text-sm text-gray-500 mb-2 text-center">
               {mode === "login"
-                ? "Enter your email to receive a 4-digit login code"
+                ? "Enter your email to receive a 8-digit login code"
                 : mode === "register"
-                  ? "Enter name & email to receive a 4-digit signup code"
-                  : `We've sent a 4-digit code to ${sentTo ?? email}.`}
+                  ? "Enter name & email to receive a 8-digit signup code"
+                  : `We've sent a 8-digit code to ${sentTo ?? email}.`}
             </p>
 
             <button
@@ -376,7 +385,7 @@ export default function AuthModal({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter 4-digit code
+                  Enter 8-digit code
                 </label>
 
                 <div
@@ -426,7 +435,7 @@ export default function AuthModal({
                       className="text-sm font-semibold hover:underline disabled:opacity-50"
                       style={{ color: BRAND_COLOR }}
                     >
-                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
+{resendTimer > 0 ? `Resend in ${formatTime(resendTimer)}` : "Resend code"}
                     </button>
                   </div>
                 </div>

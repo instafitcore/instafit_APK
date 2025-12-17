@@ -160,7 +160,7 @@ export default function ContactPage() {
 
           {/* CONTACT FORM */}
           <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-2xl shadow-xl border border-gray-100">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">Send Us a Message</h2>
+            <h2 className="text-3xl font-bold text-gray-800 mb-8">Enquiry</h2>
 
             {success && (
               <div className="mb-6 p-4 bg-green-100 text-green-700 font-medium rounded-lg border border-green-200">

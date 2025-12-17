@@ -11,6 +11,7 @@ import {
   LogOut,
   MessageCircle,
   ClipboardCheck,
+  ClipboardList, // ✅ NEW ICON
 } from "lucide-react";
 
 interface SubMenuItem {
@@ -30,21 +31,52 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   const menu: MenuItem[] = [
-    { name: "Dashboard", path: "/admin", icon: <LayoutDashboard size={20} /> },
+    {
+      name: "Dashboard",
+      path: "/admin",
+      icon: <LayoutDashboard size={20} />,
+    },
 
     {
       name: "Listing",
       icon: <List size={20} />,
       children: [
-        { name: "Category", path: "/admin/listing/category", icon: <Folder size={18} /> },
-        { name: "Subcategory", path: "/admin/listing/subcategory", icon: <Folder size={18} /> },
-        { name: "Service", path: "/admin/listing/service", icon: <Layers size={18} /> },
+        {
+          name: "Category",
+          path: "/admin/listing/category",
+          icon: <Folder size={18} />,
+        },
+        {
+          name: "Subcategory",
+          path: "/admin/listing/subcategory",
+          icon: <Folder size={18} />,
+        },
+        {
+          name: "Service",
+          path: "/admin/listing/service",
+          icon: <Layers size={18} />,
+        },
       ],
     },
 
-    { name: "Bookings", path: "/admin/bookings", icon: <ClipboardCheck size={20} /> },
+    {
+      name: "Bookings",
+      path: "/admin/bookings",
+      icon: <ClipboardCheck size={20} />,
+    },
 
-    { name: "Reviews", path: "/admin/reviews", icon: <MessageCircle size={20} /> },
+    // ✅ NEW SERVICE REQUESTS TAB
+    {
+      name: "Service Requests",
+      path: "/admin/allservicesrequest",
+      icon: <ClipboardList size={20} />,
+    },
+
+    {
+      name: "Reviews",
+      path: "/admin/reviews",
+      icon: <MessageCircle size={20} />,
+    },
   ];
 
   const renderMenu = (items: MenuItem[]) =>
@@ -99,7 +131,11 @@ export default function AdminSidebar() {
   return (
     <aside className="w-64 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white p-6 flex flex-col shadow-2xl h-screen sticky top-0">
       <div className="mb-10 flex justify-center">
-        <img src="/insta.png" alt="Instafit Core" className="w-50 h-20 shadow-md" />
+        <img
+          src="/insta.png"
+          alt="Instafit Core"
+          className="w-50 h-20 shadow-md"
+        />
       </div>
 
       <h2 className="text-2xl font-bold tracking-wide mb-6 text-center text-white">
