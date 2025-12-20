@@ -52,7 +52,6 @@ export default function FullNavbar() {
   const searchRef = useRef<HTMLDivElement>(null);
 
   // STATIC CATEGORIES
-  // STATIC CATEGORIES
   const staticCategories = [
     {
       id: "furniture-service",
@@ -183,7 +182,6 @@ export default function FullNavbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -192,23 +190,22 @@ export default function FullNavbar() {
     router.push("/site"); // Redirect to homepage after logout
   };
 
-
   return (
     <>
       <header className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-all ${isScrolled ? "shadow-md" : ""}`}>
-        <div className="hidden md:flex max-w-7xl mx-auto px-4 py-3 items-center gap-6">
-          <Link href="/site" className="flex items-center gap-3 shrink-0">
-            <div className="w-14 h-14 relative shrink-0">
+        <div className="flex max-w-7xl mx-auto px-4 py-3 items-center gap-4 md:gap-6">
+          <Link href="/site" className="flex items-center gap-2 md:gap-3 shrink-0">
+            <div className="w-10 h-10 md:w-14 md:h-14 relative shrink-0">
               <Image src="/logoInstaFit.jpg" alt="Logo" width={66} height={66} className="w-full h-full object-contain" />
             </div>
-            <div className="leading-tight">
-              <div className="text-xl font-bold text-[#8ed26b]">INSTAFITCORE</div>
+            <div className="leading-tight hidden sm:block">
+              <div className="text-lg md:text-xl font-bold text-[#8ed26b]">INSTAFITCORE</div>
               <div className="text-xs text-black">One Stop Solutions</div>
             </div>
           </Link>
 
-          {/* SEARCH BOX */}
-          <div className="flex-1 max-w-md mx-4 relative" ref={searchRef}>
+          {/* SEARCH BOX - Made bigger on mobile */}
+          <div className="flex-1 max-w-md md:max-w-lg mx-2 md:mx-4 relative" ref={searchRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -216,14 +213,14 @@ export default function FullNavbar() {
                 onChange={(e) => setSearch(e.target.value)}
                 onFocus={() => search.length >= 2 && setShowDropdown(true)}
                 placeholder="Search Installations, Repairs..."
-                className="w-full pl-10 pr-10 py-2 rounded-full border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-[#8ed26b] outline-none"
+                className="w-full pl-10 pr-10 py-3 md:py-2 rounded-full border border-gray-300 bg-gray-50 focus:ring-2 focus:ring-[#8ed26b] outline-none text-sm md:text-base"
               />
               {search && <CircleX className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer" onClick={() => setSearch("")} />}
               {isSearching && <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />}
             </div>
 
             {showDropdown && (
-              <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden z-[100]">
+              <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden z-[100] max-h-60 overflow-y-auto">
                 {searchResults.length > 0 ? (
                   searchResults.map((res) => (
                     <Link key={`${res.type}-${res.id}`} href={res.customUrl || (res.type === "category" ? `/site/category/${res.id}` : `/site/services/${res.id}`)}
@@ -242,7 +239,7 @@ export default function FullNavbar() {
             )}
           </div>
 
-          {/* NAV LINKS */}
+          {/* NAV LINKS - Hidden on mobile, shown in overlay */}
           <nav className="hidden lg:flex items-center gap-6 font-medium text-gray-700">
             <Link href="/site" className="hover:text-[#8ed26b]">Home</Link>
             <Link href="/site/services" className="hover:text-[#8ed26b]">Services</Link>
@@ -250,28 +247,28 @@ export default function FullNavbar() {
             <Link href="/site/contact" className="hover:text-[#8ed26b]">Contact Us</Link>
           </nav>
 
-          {/* USER / PROFILE */}
-          {/* USER / PROFILE */}
-          <div className="flex items-center gap-4">
+          {/* USER / PROFILE - Icons hidden on mobile, moved to menu */}
+          <div className="flex items-center gap-2 md:gap-4">
             {!user ? (
-              <button onClick={() => { setMode("login"); setShowAuth(true); }} className="px-5 py-2 rounded-full text-white font-semibold bg-[#8ed26b]">Sign In</button>
+              <button onClick={() => { setMode("login"); setShowAuth(true); }} className="px-4 py-2 md:px-5 md:py-2 rounded-full text-white font-semibold bg-[#8ed26b] text-sm md:text-base">Sign In</button>
             ) : (
-              <div className="flex items-center gap-4">
-                {/* Moved Order Tracking here next to wishlist/cart */}
-                <Link href="/site/order-tracking" title="Order Tracking">
-                  <PackageCheck className="w-6 h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />      </Link>
-
-                <Link href="/site/wishlist" title="Wishlist">
-                  <Heart className="w-6 h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
-                </Link>
-
-                <Link href="/site/cart" title="Cart">
-                  <ShoppingCart className="w-6 h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
-                </Link>
+              <div className="flex items-center gap-2 md:gap-4">
+                {/* Order Tracking, Wishlist, Cart - Hidden on mobile, shown in menu */}
+                <div className="hidden md:flex gap-2 md:gap-4">
+                  <Link href="/site/order-tracking" title="Order Tracking" className="p-2">
+                    <PackageCheck className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
+                  </Link>
+                  <Link href="/site/wishlist" title="Wishlist" className="p-2">
+                    <Heart className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
+                  </Link>
+                  <Link href="/site/cart" title="Cart" className="p-2">
+                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
+                  </Link>
+                </div>
 
                 <div className="relative" ref={profileRef}>
-                  <button onClick={() => setProfileOpen(!profileOpen)} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 hover:border-[#8ed26b]">
-                    <UserIcon className="w-5 h-5 text-gray-600" />
+                  <button onClick={() => setProfileOpen(!profileOpen)} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 hover:border-[#8ed26b]">
+                    <UserIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
                   </button>
 
                   {profileOpen && (
@@ -292,7 +289,6 @@ export default function FullNavbar() {
                         <Link href="/site/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 hover:bg-[#f0f9eb]">
                           <UserIcon className="w-4 h-4 text-gray-500" /> Profile
                         </Link>
-                        {/* Order Tracking Link removed from here */}
                       </div>
 
                       <div className="border-t">
@@ -305,26 +301,31 @@ export default function FullNavbar() {
                 </div>
               </div>
             )}
-            <button onClick={() => setMobileOpen(true)} className="md:hidden"><Menu className="w-6 h-6" /></button>
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2">
+              <Menu className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
           </div>
         </div>
 
         {/* MOBILE OVERLAY */}
-        <div className={`fixed inset-0 z-[100] bg-white transition-transform ${mobileOpen ? "translate-x-0" : "translate-x-full"} md:hidden`}>
+        <div className={`fixed inset-0 z-[100] bg-white transition-transform ${mobileOpen ? "translate-x-0" : "translate-x-full"} lg:hidden`}>
           <div className="p-4 flex justify-between items-center border-b">
             <span className="font-bold text-[#8ed26b]">Menu</span>
-            <X className="w-6 h-6" onClick={() => setMobileOpen(false)} />
+            <X className="w-6 h-6 cursor-pointer" onClick={() => setMobileOpen(false)} />
           </div>
           <div className="p-6 flex flex-col gap-6">
-            <Link href="/site" className="text-lg font-semibold">Home</Link>
-            <Link href="/site/services" className="text-lg font-semibold">Services</Link>
-            <Link href="/site/about-us" className="text-lg font-semibold">About Us</Link>
-            <Link href="/site/contact-us" className="text-lg font-semibold">Contact Us</Link>
+            <Link href="/site" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Home</Link>
+            <Link href="/site/services" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Services</Link>
+            <Link href="/site/about" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>About Us</Link>
+            <Link href="/site/contact" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Contact Us</Link>
 
             {user && (
               <div className="mt-8 flex flex-col gap-4 border-t pt-6">
-                <Link href="/site/profile" className="text-gray-800 text-base font-medium">Profile</Link>
-                <Link href="/site/order-tracking" className="text-gray-800 text-base font-medium">Order Tracking</Link>
+                <Link href="/site/profile" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Profile</Link>
+                <Link href="/site/order-tracking" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Order Tracking</Link>
+                <Link href="/site/wishlist" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Wishlist</Link>
+                <Link href="/site/cart" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Cart</Link>
+                <button onClick={handleLogout} className="text-left text-red-600 text-base font-medium">Logout</button>
               </div>
             )}
           </div>
@@ -335,27 +336,26 @@ export default function FullNavbar() {
       {pathname === "/site" && (
         <div className={`sticky top-[72px] z-40 bg-white border-b border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${categoryShrunk
           ? "py-2 shadow-sm mt-0"     // Compact padding when scrolled
-          : "py-6 mt-1"               // Moderate padding and small gap from header
+          : "py-4 md:py-6 mt-1"               // Moderate padding and small gap from header
           }`}>
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div
-              className={`flex w-full items-center transition-all duration-300
-    ${categoryShrunk ? "justify-between" : "justify-between"}
+              className={`flex w-full items-center gap-2 md:gap-4 overflow-x-auto scrollbar-hide transition-all duration-300
+    ${categoryShrunk ? "justify-start" : "justify-between"}
   `}
             >
-
               {staticCategories.map((item) => (
                 <Link
                   key={item.id}
                   href={item.link}
-                  className="flex flex-col items-center group transition-all duration-300"
+                  className="flex flex-col items-center group transition-all duration-300 flex-shrink-0"
                 >
                   {/* Image Container */}
-                  <div
+                                <div
                     className={`rounded-full border border-gray-100 overflow-hidden flex items-center justify-center transition-all duration-500 ease-in-out
                 ${categoryShrunk
                         ? "w-0 h-0 opacity-0 mb-0 scale-0"
-                        : "w-16 h-16 md:w-20 md:h-20 opacity-100 mb-2 scale-100 group-hover:border-[#8ed26b] shadow-sm"}
+                        : "w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 opacity-100 mb-2 scale-100 group-hover:border-[#8ed26b] shadow-sm"}
               `}
                   >
                     <Image
@@ -371,8 +371,8 @@ export default function FullNavbar() {
                   <p
                     className={`font-semibold text-gray-800 text-center transition-all duration-300 whitespace-nowrap leading-tight group-hover:text-[#8ed26b]
                 ${categoryShrunk
-                        ? "text-sm md:text-[15px] tracking-tight" // Balanced size when shrunk
-                        : "text-[11px] md:text-sm"}               // Standard size with images
+                        ? "text-xs md:text-sm tracking-tight"
+                        : "text-[11px] md:text-sm"}
               `}
                   >
                     {item.name}

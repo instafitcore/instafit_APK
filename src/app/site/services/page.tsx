@@ -724,80 +724,110 @@ function ServicesPageContent() {
       </div>
 
       {/* MOBILE FILTER MODAL (existing) */}
-      {showMobileFilters && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 lg:hidden">
-          <div className="bg-white rounded-2xl p-6 w-11/12 max-w-md max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Filters</h3>
+    {/* MOBILE FILTER MODAL */}
+{showMobileFilters && (
+  <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 overflow-y-auto">
+    <div className="bg-white rounded-t-3xl w-full max-w-md mt-16 p-6 pb-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold">Filters</h3>
+        <button onClick={() => setShowMobileFilters(false)} className="text-gray-500 hover:text-gray-700">
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search by service name..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[${PRIMARY_COLOR}]"
+        />
+      </div>
+
+      {/* Categories */}
+      <div className="mb-4">
+        <h4 className="font-semibold mb-2">Categories</h4>
+        <ul className="space-y-2">
+          <li>
+            <button
+              onClick={() => setSelectedSubcategory(null)}
+              className={`w-full text-left px-4 py-2 rounded-xl font-medium border-2 ${selectedSubcategory === null
+                ? `bg-[${PRIMARY_COLOR}] text-white border-[${PRIMARY_COLOR}]`
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-transparent"
+                }`}
+            >
+              All Services
+            </button>
+          </li>
+          {categories.map(cat => (
+            <li key={cat.id}>
               <button
-                onClick={() => setShowMobileFilters(false)}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={() => setExpandedCategoryId(expandedCategoryId === cat.id ? null : cat.id)}
+                className={`w-full text-left px-4 py-2 rounded-xl font-medium flex justify-between items-center ${expandedCategoryId === cat.id
+                  ? `bg-[${PRIMARY_COLOR}] text-white`
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
               >
-                <X className="w-6 h-6" />
+                {cat.name}
+                {subcategoriesMap[cat.id]?.length > 0 && (
+                  <span className={`transition-transform ${expandedCategoryId === cat.id ? "rotate-90" : ""}`}>&gt;</span>
+                )}
               </button>
-            </div>
-
-            {/* Search */}
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Search by service name..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className={`w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[${PRIMARY_COLOR}]`}
-              />
-            </div>
-
-            {/* Categories */}
-            <div className="mb-4">
-              <h4 className="font-semibold mb-2">Categories</h4>
-              <ul className="space-y-1">
-                <li>
+              {/* Subcategories */}
+              {expandedCategoryId === cat.id &&
+                subcategoriesMap[cat.id]?.map(sub => (
                   <button
-                    onClick={() => setSelectedSubcategory(null)}
-                    className={`w-full text-left px-4 py-2 rounded-xl font-medium border-2 ${selectedSubcategory === null
-                      ? `bg-[${PRIMARY_COLOR}] text-white border-[${PRIMARY_COLOR}]`
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-transparent"
+                    key={sub.id}
+                    onClick={() => setSelectedSubcategory(sub.subcategory)}
+                    className={`w-full text-left ml-4 px-4 py-2 mt-1 rounded-lg ${selectedSubcategory === sub.subcategory
+                      ? `bg-[${PRIMARY_COLOR}] text-white font-semibold shadow-md`
+                      : "text-gray-700 hover:bg-gray-100"
                       }`}
                   >
-                    All Services
+                    {sub.subcategory}
                   </button>
-                </li>
-                {subcategories.map(subcat => (
-                  <li key={subcat.id}>
-                    <button
-                      onClick={() => setSelectedSubcategory(subcat.subcategory)}
-                      className={`w-full text-left px-4 py-2 rounded-xl ${selectedSubcategory === subcat.subcategory
-                        ? `bg-[${PRIMARY_COLOR}] text-white font-semibold shadow-md`
-                        : "hover:bg-gray-100 text-gray-700"
-                        }`}
-                    >
-                      {subcat.subcategory}
-                    </button>
-                  </li>
                 ))}
-              </ul>
-            </div>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-            {/* Price Filters */}
-            <div className="mb-4">
-              <h4 className="font-semibold mb-2">Service Types</h4>
-              <div className="flex flex-wrap gap-2">
-                <FilterButton label="Installation" active={activePriceFilter === "install"} onClick={() => setActivePriceFilter(activePriceFilter === "install" ? null : "install")} />
-                <FilterButton label="Dismantling" active={activePriceFilter === "dismantle"} onClick={() => setActivePriceFilter(activePriceFilter === "dismantle" ? null : "dismantle")} />
-                <FilterButton label="Repair" active={activePriceFilter === "repair"} onClick={() => setActivePriceFilter(activePriceFilter === "repair" ? null : "repair")} />
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowMobileFilters(false)}
-              className={`w-full p-3 rounded-xl text-white font-semibold bg-[${PRIMARY_COLOR}] hover:bg-[${HOVER_COLOR}]`}
-            >
-              Apply Filters
-            </button>
-          </div>
+      {/* Service Type / Price Filters */}
+      <div className="mb-4">
+        <h4 className="font-semibold mb-2">Service Types</h4>
+        <div className="flex flex-wrap gap-2">
+          <FilterButton
+            label="Installation"
+            active={activePriceFilter === "install"}
+            onClick={() => setActivePriceFilter(activePriceFilter === "install" ? null : "install")}
+          />
+          <FilterButton
+            label="Dismantling"
+            active={activePriceFilter === "dismantle"}
+            onClick={() => setActivePriceFilter(activePriceFilter === "dismantle" ? null : "dismantle")}
+          />
+          <FilterButton
+            label="Repair"
+            active={activePriceFilter === "repair"}
+            onClick={() => setActivePriceFilter(activePriceFilter === "repair" ? null : "repair")}
+          />
         </div>
-      )}
+      </div>
+
+      {/* Apply Button */}
+      <button
+        onClick={() => setShowMobileFilters(false)}
+        className={`w-full p-4 rounded-xl text-white font-semibold bg-[${PRIMARY_COLOR}] hover:bg-[${HOVER_COLOR}]`}
+      >
+        Apply Filters
+      </button>
+    </div>
+  </div>
+)}
+
 
       {/* ⭐ NEW: CART SELECTION MODAL */}
       {isCartModalOpen && selectedServiceForCart && (
