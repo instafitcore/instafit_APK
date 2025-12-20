@@ -61,7 +61,7 @@ export default function Footer() {
               </p>
               <p className="flex items-start gap-3">
                 <Phone className="w-5 h-5 shrink-0" style={{ color: BRAND_ACCENT }} />
-                <span><span className="font-semibold text-gray-100">Toll Free:</span><br />+91 734 964 5598</span>
+                <span><span className="font-semibold text-gray-100">Toll Free:</span><br />+91 7411443233</span>
               </p>
             </div>
           </div>
@@ -95,6 +95,7 @@ export default function Footer() {
           <br />
           © {new Date().getFullYear()} InstaFitCore Solutions Private Limited. All rights reserved.
         </p>
+        <p className="text-center text-xs text-gray-500 leading-relaxed px-6">Note: Designed and Developed by Rakvih</p>
       </div>
     </footer>
   );

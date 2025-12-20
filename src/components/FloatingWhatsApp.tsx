@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-const WHATSAPP_PHONE = '917349645598';
+const WHATSAPP_PHONE = '7411443233';
 const PRESET_MESSAGE = 'Hello, I am interested in your services and would like more details.';
 const whatsappLink = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(PRESET_MESSAGE)}`;
 
