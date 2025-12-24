@@ -347,7 +347,7 @@ export default function FullNavbar() {
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-3 w-64 bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden z-50">
+                    <div className="absolute right-0 mt-3 w-64 bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden z-[9999]">
                       <div className="px-5 py-4 border-b bg-gray-50">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-[#8ed26b]/20 flex items-center justify-center">
@@ -410,9 +410,10 @@ export default function FullNavbar() {
       {/* CATEGORY BAR (Home only) */}
       {pathname === "/site" && (
         <div
-          className={`sticky top-[72px] z-50 bg-white border-b border-gray-100 shadow-sm transition-all duration-300 overflow-visible ${categoryShrunk ? "py-6" : "py-4"
+          className={`sticky top-[72px] z-40 bg-white border-b border-gray-100 shadow-sm transition-all duration-300 overflow-visible ${categoryShrunk ? "py-6" : "py-4"
             }`}
         >
+
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="flex flex-wrap justify-center gap-16 md:gap-20 lg:gap-24 transition-all duration-300">
               {staticCategories.map((item) => (
