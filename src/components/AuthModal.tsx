@@ -59,48 +59,61 @@ export default function AuthModal({
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (countdown > 0) return; // Prevent extra requests
+    if (countdown > 0) return;
     setLoading(true);
 
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      // 1. Check if the profile exists
-      const { data: profile } = await supabase
+      // 1. Check if the profile exists in your public table
+      const { data: profile, error: fetchError } = await supabase
         .from("profiles")
         .select("email")
         .eq("email", normalizedEmail)
         .maybeSingle();
 
-      // REGISTRATION CHECK
+      // REGISTRATION LOGIC: If they want to register but are already found
       if (mode === "register" && profile) {
         setLoading(false);
-        return toast({ title: "Account Exists", description: "This email is registered. Please Login.", variant: "destructive" });
+        return toast({ 
+          title: "Account Exists", 
+          description: "This email is already registered. Switching to Login...", 
+          variant: "destructive" 
+        });
       }
 
-      // LOGIN CHECK 
+      // LOGIN LOGIC: If they want to login but no profile is found in YOUR table
+      // We check if it's a "silent" fail or a real missing user
       if (mode === "login" && !profile) {
-        setLoading(false);
-        return toast({ title: "Error", description: "No account found. Please Register first.", variant: "destructive" });
+        // Optimization: Instead of blocking them, we check if we can try to sign in anyway
+        // because sometimes the Auth user exists but the 'profile' row is missing.
+        console.warn("Profile row missing for email:", normalizedEmail);
       }
 
       // 📩 Send the OTP
+      // We set 'shouldCreateUser' to true ONLY if in register mode.
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: {
           shouldCreateUser: mode === "register",
-          data: mode === "register" ? { full_name: name } : undefined,  // Fixed syntax error
+          data: mode === "register" ? { full_name: name } : undefined,
         },
       });
 
-      if (otpError) throw otpError;
+      if (otpError) {
+        // If Supabase says "Signups not allowed" or user not found during login
+        if (otpError.message.includes("not found") || otpError.status === 400) {
+            throw new Error("No account found with this email. Please register first.");
+        }
+        throw otpError;
+      }
 
       setShowOtpInput(true);
-      setCountdown(60); // Start 60-second countdown after successful send
-      toast({ title: "OTP Sent", description: "Check your email." });
+      setCountdown(60);
+      toast({ title: "OTP Sent", description: "Check your email inbox." });
 
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Auth Error", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }

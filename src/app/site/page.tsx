@@ -178,37 +178,37 @@ const SubcategoryCard: React.FC<{ subcategory: Subcategory }> = ({ subcategory }
   );
 
   return (
-   <div
-  className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden hover:scale-[1.03] flex flex-col h-full"
->
-  <div className="relative h-48 w-full bg-gray-200">
-    {subcategory.image_url ? (
-      <Image
-        src={subcategory.image_url}
-        alt={subcategory.subcategory}
-        fill
-        className="object-cover group-hover:scale-110 transition-transform duration-300"
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-      />
-    ) : (
-      <NoImagePlaceholder />
-    )}
-  </div>
+    <div
+      className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden hover:scale-[1.03] flex flex-col h-full"
+    >
+      <div className="relative h-48 w-full bg-gray-200">
+        {subcategory.image_url ? (
+          <Image
+            src={subcategory.image_url}
+            alt={subcategory.subcategory}
+            fill
+            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          />
+        ) : (
+          <NoImagePlaceholder />
+        )}
+      </div>
 
-  <div className="p-4 flex flex-col flex-grow">
-    <h3 className="text-lg font-bold text-gray-800 line-clamp-2 min-h-[3rem]">
-      {subcategory.subcategory}
-    </h3>
+      <div className="p-4 flex flex-col flex-grow">
+        <h3 className="text-lg font-bold text-gray-800 line-clamp-2 min-h-[3rem]">
+          {subcategory.subcategory}
+        </h3>
 
-    <p className="text-xs text-green-600 font-medium mt-1 uppercase">
-      {subcategory.category}
-    </p>
+        <p className="text-xs text-green-600 font-medium mt-1 uppercase">
+          {subcategory.category}
+        </p>
 
-    <p className="text-sm text-gray-500 mt-0 line-clamp-2">
-      {subcategory.description || "No description available"}
-    </p>
-  </div>
-</div>
+        <p className="text-sm text-gray-500 mt-0 line-clamp-2">
+          {subcategory.description || "No description available"}
+        </p>
+      </div>
+    </div>
 
   );
 };
@@ -605,7 +605,7 @@ const ProjectsSlider: React.FC = () => {
     if (scrollRef.current) {
       const { scrollLeft, clientWidth } = scrollRef.current;
       // Scroll by one card width
-      const scrollAmount = clientWidth > 768 ? 450 : 300; 
+      const scrollAmount = clientWidth > 768 ? 450 : 300;
       const scrollTo = direction === "left" ? scrollLeft - scrollAmount : scrollLeft + scrollAmount;
       scrollRef.current.scrollTo({ left: scrollTo, behavior: "smooth" });
     }
@@ -623,11 +623,11 @@ const ProjectsSlider: React.FC = () => {
         <p className="text-gray-500 mt-3 text-lg max-w-2xl mx-auto">
           See the transformations we've delivered for our clients.
         </p>
-        
+
         {/* Centered Navigation Buttons */}
         <div className="flex justify-center gap-4 mt-8">
-          <button 
-            onClick={() => scroll("left")} 
+          <button
+            onClick={() => scroll("left")}
             className="p-3 rounded-full border border-gray-200 hover:bg-gray-50 transition shadow-sm bg-white"
             aria-label="Scroll left"
           >
@@ -635,8 +635,8 @@ const ProjectsSlider: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <button 
-            onClick={() => scroll("right")} 
+          <button
+            onClick={() => scroll("right")}
             className="p-3 rounded-full border border-gray-200 hover:bg-gray-50 transition shadow-sm bg-white"
             aria-label="Scroll right"
           >
@@ -648,34 +648,34 @@ const ProjectsSlider: React.FC = () => {
       </div>
 
       {/* SCROLLABLE CONTAINER */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex gap-6 overflow-x-auto px-6 pb-10 no-scrollbar snap-x snap-mandatory"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {projects.map((project) => (
-          <div 
-            key={project.id} 
+          <div
+            key={project.id}
             /* Same width for all cards */
             className="w-[300px] md:w-[450px] flex-shrink-0 snap-center group"
           >
             <div className="relative h-[300px] md:h-[400px] w-full rounded-[2rem] overflow-hidden shadow-lg bg-gray-100 border border-gray-100">
-              
+
               {project.media_type === "video" ? (
-                <video 
-                  src={project.media_url} 
-                  className="w-full h-full object-cover" 
-                  autoPlay 
-                  muted 
-                  loop 
-                  playsInline 
+                <video
+                  src={project.media_url}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
                 />
               ) : (
-                <Image 
-                  src={project.media_url} 
-                  alt={project.title} 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-700" 
+                <Image
+                  src={project.media_url}
+                  alt={project.title}
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-700"
                 />
               )}
 
@@ -702,17 +702,20 @@ export default function HomePage() {
 
   const subScrollRef = useRef<HTMLDivElement>(null);
 
-const scrollSub = (direction: "left" | "right") => {
-  if (!subScrollRef.current) return;
+ const scrollSub = (direction: "left" | "right") => {
+    if (!subScrollRef.current) return;
 
-  const scrollAmount = window.innerWidth >= 768 ? 320 : 240;
+    const { scrollLeft, clientWidth } = subScrollRef.current;
+    // Scroll by the full width of the container for a "page-turn" effect
+    const scrollTo = direction === "left" 
+      ? scrollLeft - clientWidth 
+      : scrollLeft + clientWidth;
 
-  subScrollRef.current.scrollBy({
-    left: direction === "left" ? -scrollAmount : scrollAmount,
-    behavior: "smooth",
-  });
-};
-
+    subScrollRef.current.scrollTo({
+      left: scrollTo,
+      behavior: "smooth",
+    });
+  };
   // Fetch subcategories data on component mount
   useEffect(() => {
     const fetchSubcategories = async () => {
@@ -774,68 +777,85 @@ const scrollSub = (direction: "left" | "right") => {
       <hr className="max-w-6xl mx-auto border-gray-200" />
 
       {/* --- LATEST SUBCATEGORIES (Limited to 4) --- */}
+     {/* --- LATEST SUBCATEGORIES --- */}
       <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-8 sm:mb-12">
-            Explore Featured Subcategories
-          </h2>
+
+          {/* ✅ CENTERED HEADER */}
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">
+              Explore Featured Subcategories
+            </h2>
+            <p className="text-gray-500 mt-3 text-lg max-w-2xl mx-auto">
+              Discover our most popular service categories curated for you
+            </p>
+          </div>
 
           {subcategories.length > 0 ? (
-            // Grid layout set for 2 columns on small screens, 4 on large screens
-           <div className="relative">
-  {/* Scroll Buttons */}
-  <button
-    onClick={() => scrollSub("left")}
-    className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full"
-  >
-    ◀
-  </button>
+            <div className="relative group">
 
-  <button
-    onClick={() => scrollSub("right")}
-    className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full"
-  >
-    ▶
-  </button>
+              {/* ⬅ LEFT BUTTON */}
+              <button
+                onClick={() => scrollSub("left")}
+                className="hidden md:flex absolute -left-6 top-1/2 -translate-y-1/2 z-20 bg-white shadow-xl p-4 rounded-full border border-gray-100 hover:bg-gray-50 transition-all"
+                aria-label="Scroll left"
+              >
+                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
 
-  {/* Scroll Container */}
-  <div
-    ref={subScrollRef}
-    className="flex gap-6 overflow-x-auto pb-6 px-2 snap-x snap-mandatory no-scrollbar"
-  >
-    {subcategories.map((sub) => (
-      <div
-        key={sub.id}
-        className="w-[220px] sm:w-[260px] md:w-[300px] flex-shrink-0 snap-center"
-      >
-        <SubcategoryCard subcategory={sub} />
-      </div>
-    ))}
-  </div>
-</div>
+              {/* ➡ RIGHT BUTTON */}
+              <button
+                onClick={() => scrollSub("right")}
+                className="hidden md:flex absolute -right-6 top-1/2 -translate-y-1/2 z-20 bg-white shadow-xl p-4 rounded-full border border-gray-100 hover:bg-gray-50 transition-all"
+                aria-label="Scroll right"
+              >
+                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
 
+              {/* 🔁 SCROLL CONTAINER */}
+              <div
+                ref={subScrollRef}
+                className="grid grid-flow-col auto-cols-[85%] md:auto-cols-[calc(25%-18px)] gap-6 overflow-x-auto pb-8 px-2 snap-x snap-mandatory no-scrollbar scroll-smooth"
+              >
+                {subcategories.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="snap-center"
+                  >
+                    <SubcategoryCard subcategory={sub} />
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
-            <p className="text-center text-gray-500 text-lg">No active subcategories found.</p>
+            <p className="text-center text-gray-500 text-lg">
+              No active subcategories found.
+            </p>
           )}
 
-          <div className="text-center mt-12">
+          {/* CTA BUTTON */}
+          <div className="text-center mt-8">
             <Link
               href="/site/services"
               className="inline-block px-8 py-3 text-white font-bold rounded-full shadow-lg transition-all duration-300 hover:scale-105 bg-instafitcore-green hover:bg-instafitcore-green-hover"
             >
               View All Services
             </Link>
-
           </div>
         </div>
       </section>
+
 
       <hr className="max-w-6xl mx-auto border-gray-200" />
 
       {/* --- NEW: TESTIMONIALS SECTION (Dynamic from Supabase) --- */}
       <TestimonialSection />
       <hr className="max-w-6xl mx-auto border-gray-200" />
-{/* --- NEW PROJECTS SLIDER SECTION --- */}
+      {/* --- NEW PROJECTS SLIDER SECTION --- */}
       <ProjectsSlider />
 
       <hr className="max-w-6xl mx-auto border-gray-200" />
