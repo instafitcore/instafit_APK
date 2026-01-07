@@ -43,6 +43,7 @@ type Subcategory = {
 type Slide = {
   id: number;
   img: string;
+  mainHeader: string;
   title: string;
   subtitle: string;
   cta: { text: string; href: string };
@@ -77,6 +78,7 @@ const SLIDES_DATA: Slide[] = [
   {
     id: 1,
     img: "/pi.jpg",
+    mainHeader: "Trusted Furniture & Home Services",
     title: "What We Offer",
     subtitle: "Trusted, professional services designed for your convenience.",
     cta: { text: "Services", href: "/site/services" },
@@ -84,6 +86,7 @@ const SLIDES_DATA: Slide[] = [
   {
     id: 2,
     img: "/pi2.jpg",
+    mainHeader: "Built on Expertise & Reliability",
     title: "Who We Are",
     subtitle: "Driven by expertise, guided by strong values, and committed to excellence.",
     cta: { text: "About Us", href: "/site/about" },
@@ -91,6 +94,7 @@ const SLIDES_DATA: Slide[] = [
   {
     id: 3,
     img: "/banner4.jpg",
+    mainHeader: "Let’s Work Together",
     title: "Get in Touch",
     subtitle: "Reach out to us for service bookings, support, or general inquiries.",
     cta: { text: "Contact Us", href: "/site/contact" },
@@ -299,9 +303,17 @@ const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
 
           <div className="absolute z-20 left-6 md:left-20 top-1/2 -translate-y-1/2 max-w-lg text-left"> {/* Added text-left for better mobile stacking */}
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-2xl mb-2 sm:mb-4">
+            {/* MAIN HEADER (same for all banners) */}
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold uppercase tracking-wider text-instafitcore-green mb-4">
+              {slide.mainHeader}
+            </h2>
+
+
+            {/* SLIDE TITLE */}
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-2xl mb-3">
               {slide.title}
             </h1>
+
             <p className="text-md sm:text-lg md:text-xl text-white/90 drop-shadow-lg mb-4 sm:mb-6">
               {slide.subtitle}
             </p>
@@ -702,13 +714,13 @@ export default function HomePage() {
 
   const subScrollRef = useRef<HTMLDivElement>(null);
 
- const scrollSub = (direction: "left" | "right") => {
+  const scrollSub = (direction: "left" | "right") => {
     if (!subScrollRef.current) return;
 
     const { scrollLeft, clientWidth } = subScrollRef.current;
     // Scroll by the full width of the container for a "page-turn" effect
-    const scrollTo = direction === "left" 
-      ? scrollLeft - clientWidth 
+    const scrollTo = direction === "left"
+      ? scrollLeft - clientWidth
       : scrollLeft + clientWidth;
 
     subScrollRef.current.scrollTo({
@@ -777,7 +789,7 @@ export default function HomePage() {
       <hr className="max-w-6xl mx-auto border-gray-200" />
 
       {/* --- LATEST SUBCATEGORIES (Limited to 4) --- */}
-     {/* --- LATEST SUBCATEGORIES --- */}
+      {/* --- LATEST SUBCATEGORIES --- */}
       <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
 

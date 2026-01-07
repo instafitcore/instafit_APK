@@ -57,6 +57,7 @@ export default function FullNavbar() {
     {
       id: "furniture-service",
       name: "Furniture Service",
+      subtitle: "Assembly & repair",
       image_url: "/furniture-service.jpeg",
       link: "/site/services",
       subServices: [
@@ -70,6 +71,7 @@ export default function FullNavbar() {
     {
       id: "custom-furniture",
       name: "Modular Furniture",
+      subtitle: "Custom design & install",
       image_url: "/custom-furniture.jpg",
       link: "/site/services?topLevel=Customized%20Modular%20Furniture",
       subServices: [
@@ -83,49 +85,37 @@ export default function FullNavbar() {
     {
       id: "custom-kitchen",
       name: "Modular Kitchen",
+      subtitle: "Design, build & install",
       image_url: "/custom-kitchen.jpg",
       link: "/site/services?topLevel=Customized%20Modular%20Kitchen",
-      subServices: [
-        "Kitchen Design & Site Measurement",
-        "Modular Kitchen Manufacturing",
-        "Modular Kitchen Installation",
-        "Cabinet & Accessory Installation",
-        "Kitchen Refurbishment / Modification",
-      ],
+      subServices: [],
     },
     {
       id: "packer-movers",
       name: "Packer and Movers",
-      image_url: "/packer.jpg",
+      subtitle: "Safe Relocation",
+    image_url: "/packer.jpg",
       link: "/site/services?topLevel=Relocation%20Services",
-      subServices: [
-        "Furniture Dismantling",
-        "Packing & Labelling",
-        "Transportation",
-        "Unpacking & Placement",
-        "Re-installation at New Location",
-      ],
+      subServices: [],
     },
     {
       id: "b2b-request",
       name: "B2B Services",
+      subtitle: "Enterprise & bulk services",
       image_url: "/b2.jpg",
       link: "/site/services?topLevel=B2B%20Services",
-      subServices: [
-        "Last-Mile Furniture Delivery",
-        "Delivery-cum-Installation",
-        "Reverse Pickup",
-        "Store Display Furniture Installation",
-      ],
+      subServices: [],
     },
     {
       id: "ask-expert",
       name: "Ask the Expert",
+      subtitle: "Well-prome tion pages",
       image_url: "/exp.jpg",
       link: "/site/contact",
       subServices: [],
     },
   ];
+
 
   // Close search dropdown outside click
   useEffect(() => {
@@ -309,8 +299,8 @@ export default function FullNavbar() {
                         (res.type === "category"
                           ? `/site/services?category=${encodeURIComponent(res.name)}`
                           : res.type === "subcategory"
-                          ? `/site/services?subcategory=${encodeURIComponent(res.name)}&category=${encodeURIComponent(res.parent_category || "")}`
-                          : `/site/services`
+                            ? `/site/services?subcategory=${encodeURIComponent(res.name)}&category=${encodeURIComponent(res.parent_category || "")}`
+                            : `/site/services`
                         )
                       }
                       className={`flex flex-col px-4 py-3 hover:bg-[#f0f9eb] border-b last:border-0 ${res.type === "service_type" ? "bg-green-50/50" : ""}`}
@@ -458,13 +448,24 @@ export default function FullNavbar() {
                       />
                     </div>
 
-                    {/* Text Label */}
-                    <p
-                      className={`text-center text-[11px] md:text-sm font-semibold text-gray-800 leading-snug break-words transition-all duration-300 group-hover:text-[#8ed26b] ${categoryShrunk ? "mt-4" : "mt-2"
-                        }`}
-                    >
-                      {item.name}
-                    </p>
+                    <div className="h-[42px] flex flex-col items-center justify-center">
+                      <p
+                        className={`text-center text-[11px] md:text-sm font-semibold text-gray-800
+    whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] md:max-w-[140px]
+    transition-all duration-300 group-hover:text-[#8ed26b]
+    ${categoryShrunk ? "mt-0" : "mt-1"}`}
+                      >
+                        {item.name}
+                      </p>
+
+                      <p
+                        className="text-[10px] md:text-xs text-gray-500 font-medium
+    whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] md:max-w-[140px]"
+                      >
+                        {item.subtitle}
+                      </p>
+                    </div>
+
                   </Link>
 
 
