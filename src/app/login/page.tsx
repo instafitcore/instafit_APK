@@ -84,10 +84,6 @@ export default function AdminLogin() {
           © {new Date().getFullYear()} Instafit Core
         </p>
 
-        <div className="mt-2 text-gray-700 text-sm text-center">
-          <p><strong>Email:</strong> admin@example.com</p>
-          <p><strong>Password:</strong> admin123</p>
-        </div>
 
       </div>
     </div>
