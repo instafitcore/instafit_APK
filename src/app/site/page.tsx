@@ -700,6 +700,19 @@ export default function HomePage() {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const subScrollRef = useRef<HTMLDivElement>(null);
+
+const scrollSub = (direction: "left" | "right") => {
+  if (!subScrollRef.current) return;
+
+  const scrollAmount = window.innerWidth >= 768 ? 320 : 240;
+
+  subScrollRef.current.scrollBy({
+    left: direction === "left" ? -scrollAmount : scrollAmount,
+    behavior: "smooth",
+  });
+};
+
   // Fetch subcategories data on component mount
   useEffect(() => {
     const fetchSubcategories = async () => {
@@ -710,7 +723,7 @@ export default function HomePage() {
         .eq("is_active", true)
         // Ordering by ID (or created_at) descending to get the "latest"
         .order("id", { ascending: false })
-        .limit(4); // <<< LIMIT SET TO 4 as requested
+        .limit(15); // <<< LIMIT SET TO 4 as requested
 
       if (error) {
         console.error("Subcategory fetch error:", error.message);
@@ -747,7 +760,7 @@ export default function HomePage() {
       <section className="py-12 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-800 mb-10 sm:mb-16">
-            Why Choose Our Serviceshhhhhhhhhhhhhhhhhhh?
+            Why Choose Our Services?
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
@@ -769,11 +782,38 @@ export default function HomePage() {
 
           {subcategories.length > 0 ? (
             // Grid layout set for 2 columns on small screens, 4 on large screens
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-              {subcategories.map((sub) => (
-                <SubcategoryCard key={sub.id} subcategory={sub} />
-              ))}
-            </div>
+           <div className="relative">
+  {/* Scroll Buttons */}
+  <button
+    onClick={() => scrollSub("left")}
+    className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full"
+  >
+    ◀
+  </button>
+
+  <button
+    onClick={() => scrollSub("right")}
+    className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full"
+  >
+    ▶
+  </button>
+
+  {/* Scroll Container */}
+  <div
+    ref={subScrollRef}
+    className="flex gap-6 overflow-x-auto pb-6 px-2 snap-x snap-mandatory no-scrollbar"
+  >
+    {subcategories.map((sub) => (
+      <div
+        key={sub.id}
+        className="w-[220px] sm:w-[260px] md:w-[300px] flex-shrink-0 snap-center"
+      >
+        <SubcategoryCard subcategory={sub} />
+      </div>
+    ))}
+  </div>
+</div>
+
           ) : (
             <p className="text-center text-gray-500 text-lg">No active subcategories found.</p>
           )}
