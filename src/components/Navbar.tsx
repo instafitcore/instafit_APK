@@ -94,7 +94,7 @@ export default function FullNavbar() {
       id: "packer-movers",
       name: "Packer and Movers",
       subtitle: "Safe Relocation",
-      image_url: "/packer.jpg",
+      image_url: "/pak.jpg",
       link: "/site/services?topLevel=Relocation%20Services",
       subServices: [],
     },

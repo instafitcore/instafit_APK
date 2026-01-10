@@ -506,7 +506,7 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
             service_name: service.service_name,
             service_types: serviceTypes,
             date,
-            booking_time: `${time}:00`,
+            booking_time: `${to24HourTime(time)}:00`, 
             total_price: totalPrice,
             address: formattedAddress,
             status: payment_id ? "Paid" : "Pending",
