@@ -79,13 +79,34 @@ export default function ServicesAdminPage() {
 
 
 
-  const convertToBase64 = (file: File) =>
-    new Promise<string | null>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string | null);
-      reader.onerror = reject;
-    });
+
+  // Replace convertToBase64 with uploadToStorage
+  const uploadToStorage = async (file: File, bucketName: string = "service-images"): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `services/${fileName}`; // Optional: Organize files in a folder
+
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          cacheControl: '3600', // Optional: Cache for 1 hour
+          upsert: false, // Prevent overwriting
+        });
+
+      if (error) throw error;
+
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+
+      return publicUrlData.publicUrl;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      return null;
+    }
+  };
 
 
   const fetchServices = async (
@@ -211,7 +232,11 @@ export default function ServicesAdminPage() {
 
     setSubmitting(true);
     try {
-      const img = serviceImage ? await convertToBase64(serviceImage) : null;
+      let imgUrl = null;
+      if (serviceImage) {
+        imgUrl = await uploadToStorage(serviceImage);
+        if (!imgUrl) throw new Error('Image upload failed');
+      }
 
       const { error } = await supabase.from("services").insert([
         {
@@ -222,7 +247,7 @@ export default function ServicesAdminPage() {
           dismantling_price: dismantlingPrice || null,
           repair_price: repairPrice || null,
           preferred_timings: cleanTimings,
-          image_url: img,
+          image_url: imgUrl, // Fixed: Use imgUrl (the uploaded URL)
         },
       ]);
 
@@ -312,7 +337,10 @@ export default function ServicesAdminPage() {
     setSubmitting(true);
     try {
       let updatedImage = editItem.image_url;
-      if (imageFile) updatedImage = await convertToBase64(imageFile);
+      if (imageFile) {
+        updatedImage = await uploadToStorage(imageFile);
+        if (!updatedImage) throw new Error('Image upload failed');
+      }
 
       const { error } = await supabase
         .from("services")
@@ -324,7 +352,7 @@ export default function ServicesAdminPage() {
           dismantling_price: editItem.dismantling_price,
           repair_price: editItem.repair_price,
           preferred_timings: cleanEditTimings,
-          image_url: updatedImage,
+          image_url: updatedImage, // Now a URL
         })
         .eq("id", editItem.id);
 

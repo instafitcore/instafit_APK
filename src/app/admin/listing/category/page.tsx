@@ -35,87 +35,127 @@ export default function CategoryAdminPage() {
   const [deleteItem, setDeleteItem] = useState<CategoryItem | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+
   // Fetch categories
-  const fetchCategories = async (q: string = "", filter: string = "All") => {
+  const fetchCategories = async (q = "", filter = "All") => {
     setLoading(true);
-    let query = supabase.from("categories").select("*").order("id", { ascending: false });
+
+    let query = supabase
+      .from("categories")
+      .select("id, category, description, image_url")
+      .order("id", { ascending: false })
+      .limit(50);
+
     if (q.trim()) query = query.ilike("category", `%${q}%`);
     if (filter !== "All") query = query.eq("category", filter);
 
-    const { data } = await query;
-    setCategories(data || []);
+    const { data, error } = await query;
+
+    if (!error) setCategories(data || []);
     setLoading(false);
   };
 
+
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    fetchCategories(debouncedSearch, filterCategory);
+  }, [debouncedSearch, filterCategory]);
+
 
   const uniqueCategories = Array.from(new Set(categories.map((c) => c.category))).sort();
 
-  const convertToBase64 = (file: File) =>
-    new Promise<string | null>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string | null);
-      reader.onerror = reject;
-    });
+
+  const uploadCategoryImage = async (file: File) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const filePath = `categories/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from("category-images")
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from("category-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
 
   // Add new category
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
+ const handleAddCategory = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setSubmitting(true);
 
-    // Validation
-    if (!categoryName.trim()) {
-      addToast("Category name is required.", "error");
-      setSubmitting(false);
+  if (!categoryName.trim()) {
+    addToast("Category name is required.", "error");
+    setSubmitting(false);
+    return;
+  }
+
+  if (!description.trim()) {
+    addToast("Description is required.", "error");
+    setSubmitting(false);
+    return;
+  }
+
+  if (!imageFile) {
+    addToast("Category image is required.", "error");
+    setSubmitting(false);
+    return;
+  }
+
+  const duplicate = categories.find(
+    (c) => c.category.toLowerCase() === categoryName.trim().toLowerCase()
+  );
+  if (duplicate) {
+    addToast("This category already exists.", "error");
+    setSubmitting(false);
+    return;
+  }
+
+  try {
+    const imageUrl = await uploadCategoryImage(imageFile);
+
+    const { error } = await supabase.from("categories").insert([
+      {
+        category: categoryName,
+        description,
+        image_url: imageUrl,
+      },
+    ]);
+
+    if (error) {
+      addToast(`Failed: ${error.message}`, "error");
       return;
     }
-    if (!description.trim()) {
-      addToast("Description is required.", "error");
-      setSubmitting(false);
-      return;
-    }
-    if (!imageFile && !preview) {
-      addToast("Category image is required.", "error");
-      setSubmitting(false);
-      return;
-    }
 
-    // Duplicate check
-    const duplicate = categories.find(
-      (c) => c.category.toLowerCase() === categoryName.trim().toLowerCase()
-    );
-    if (duplicate) {
-      addToast("This category already exists.", "error");
-      setSubmitting(false);
-      return;
-    }
+    addToast("Category added successfully!", "success");
 
-    try {
-      const catImage = imageFile ? await convertToBase64(imageFile) : preview;
-      const { error } = await supabase.from("categories").insert([
-        { category: categoryName, description, image_url: catImage },
-      ]);
+    setCategoryName("");
+    setDescription("");
+    setImageFile(null);
+    setPreview(null);
 
-      if (error) {
-        addToast(`Failed: ${error.message}`, "error");
-        return;
-      }
+    fetchCategories();
+  } catch (err: any) {
+    addToast(err.message || "Something went wrong", "error");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-      addToast("Category added successfully!", "success");
-
-      setCategoryName("");
-      setDescription("");
-      setImageFile(null);
-      setPreview(null);
-
-      fetchCategories();
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   // Edit modal helpers
   const openEditModal = (item: CategoryItem) => {
@@ -165,20 +205,16 @@ export default function CategoryAdminPage() {
                 type="text"
                 placeholder="Search categories..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  fetchCategories(e.target.value, filterCategory);
-                }}
+                onChange={(e) => setSearch(e.target.value)}
+
                 className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#8ed26b] outline-none"
               />
             </div>
 
             <select
               value={filterCategory}
-              onChange={(e) => {
-                setFilterCategory(e.target.value);
-                fetchCategories(search, e.target.value);
-              }}
+              onChange={(e) => setFilterCategory(e.target.value)}
+
               className="px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#8ed26b] bg-white"
             >
               <option value="All">All Categories</option>
@@ -376,7 +412,10 @@ export default function CategoryAdminPage() {
                   }
 
                   let updatedImage = editItem.image_url;
-                  if (imageFile) updatedImage = await convertToBase64(imageFile);
+
+                  if (imageFile) {
+                    updatedImage = await uploadCategoryImage(imageFile);
+                  }
 
                   await supabase
                     .from("categories")

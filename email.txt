@@ -1,44 +1,15 @@
-Step 1: Enable 2-Step Verification
+API URL:
+https://vvvjxzaqrxivvitrrsjr.supabase.co/rest/v1/bookings
 
-Go to your Google Account: https://myaccount.google.com/security
+Method:
+GET
 
-Scroll to “Signing in to Google”.
+Response format:
+JSON
 
-Find 2-Step Verification and click “Turn on” (or “Manage” if already on).
+Required headers:
+apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2dmp4emFxcnhpdnZpdHJyc2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2ODcyMzQsImV4cCI6MjA4MzI2MzIzNH0.Z-0tHOWVeMBx1TAHd69g2NC7KyTvJdQo5FZYj3puIe8
 
-Follow the steps:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3amRqcWNibGV5d3Vla2RpbnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NTkxNTYsImV4cCI6MjA3OTEzNTE1Nn0.7hl0dJXpWjIR6gI8iPTRk2dECT1LP7EJVNfz4pRpjsY
 
-Add your phone number for verification.
-
-Choose your verification method (SMS or Google Prompt).
-
-Once completed, 2-Step Verification is active.
-
-✅ This is required because Gmail will not allow App Passwords without 2FA.
-
-Step 2: Generate an App Password
-
-After 2FA is enabled, go to App Passwords directly: https://myaccount.google.com/apppasswords
-
-If prompted, sign in again to verify.
-
-Under “Select app”, choose Mail.
-
-Under “Select device”, choose Other (Custom name).
-
-Give it a name like NextJS Contact Form.
-
-Click Generate.
-
-Google will show a 16-character password (no spaces).
-
-Example: bggczskslcpesyvq
-
-Copy this password — this is your EMAIL_PASS.
-
-Step 3: Add to .env
-
-Create a .env file in your Next.js project:
-
-EMAIL_USER=vyshnavivgowda@gmail.com
-EMAIL_PASS=bggczskslcpesyvq
+Content-Type: application/json

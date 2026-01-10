@@ -827,7 +827,6 @@ function ServicesPageContent() {
                           {formatPrice(service.installation_price) && (
                             <p className="flex justify-between">
                               <span>
-                                <Wrench className="inline w-4 h-4 mr-1 text-blue-500" />
                                 Installation:
                               </span>
                               <span className="font-bold text-green-600 text-lg">

@@ -14,23 +14,24 @@ type ContactInfoCardProps = {
 };
 
 const ContactInfoCard: React.FC<ContactInfoCardProps> = ({ icon: Icon, title, content, link }) => (
-  <div className="flex items-start gap-4 p-4 bg-white rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition">
-    <div className="p-3 rounded-full bg-instafitcore-green/20 text-instafitcore-green flex items-center justify-center">
-      <Icon className="w-6 h-6" />
-    </div>
-    <div className="flex-1">
-      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      <p className="text-gray-600 mt-1">
-        {link ? (
-          <a href={link} className="text-instafitcore-green font-medium hover:underline">
-            {content}
-          </a>
-        ) : (
-          content
-        )}
-      </p>
-    </div>
+ <div className="flex items-start gap-4 p-4 bg-white rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition">
+  <div className="p-3 rounded-full bg-instafitcore-green/20 text-instafitcore-green flex items-center justify-center">
+    <Icon className="w-6 h-6" />
   </div>
+  <div className="flex-1">
+    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+    <p className="text-gray-600 mt-1">
+      {link ? (
+        <a href={link} className="text-instafitcore-green font-medium hover:underline">
+          {content}
+        </a>
+      ) : (
+        content
+      )}
+    </p>
+  </div>
+</div>
+
 );
 
 export default function ContactPage() {
@@ -115,8 +116,8 @@ export default function ContactPage() {
               <ContactInfoCard
                 icon={Mail}
                 title="Grievance"
-                content="grievance@instafitcore.com"
-                link="mailto:grievance@instafitcore.com"
+                content="Feedback@instafitcore.com"
+                link="mailto:Feedback@instafitcore.com"
               />
               <ContactInfoCard
                 icon={MapPin}

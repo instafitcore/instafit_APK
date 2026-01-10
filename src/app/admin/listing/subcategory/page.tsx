@@ -94,7 +94,11 @@ export default function SubcategoryAdminPage() {
     }
 
     try {
-      const img = imageFile ? await convertToBase64(imageFile) : preview;
+      let imageUrl = preview;
+
+      if (imageFile) {
+        imageUrl = await uploadSubcategoryImage(imageFile);
+      }
 
       // Duplicate check
       const { data: existing } = await supabase
@@ -111,11 +115,12 @@ export default function SubcategoryAdminPage() {
       }
 
       const { error } = await supabase.from("subcategories").insert([
-        { category: categoryName, subcategory: subcatName, description, image_url: img },
+        { category: categoryName, subcategory: subcatName, description, image_url: imageUrl },
       ]);
 
       if (error) {
         addToast(`Failed: ${error.message}`, "error");
+        setSubmitting(false);
         return;
       }
 
@@ -131,6 +136,7 @@ export default function SubcategoryAdminPage() {
       setSubmitting(false);
     }
   };
+
 
   const openEditModal = (item: SubcategoryItem) => {
     setEditItem(item);
@@ -159,6 +165,23 @@ export default function SubcategoryAdminPage() {
       fetchSubcategories(search, filterCategory);
     }
     setDeletingId(null);
+  };
+  const uploadSubcategoryImage = async (file: File) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const filePath = `categories/${fileName}`; // using the same 'categories' folder
+
+    const { error: uploadError } = await supabase.storage
+      .from("category-images")
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from("category-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   };
 
   return (
@@ -414,7 +437,9 @@ export default function SubcategoryAdminPage() {
                   if (!editItem) return;
 
                   let updatedImage = editItem.image_url;
-                  if (imageFile) updatedImage = await convertToBase64(imageFile);
+                  if (imageFile) {
+                    updatedImage = await uploadSubcategoryImage(imageFile);
+                  }
 
                   const { error } = await supabase.from("subcategories").update({
                     category: editItem.category,
@@ -431,11 +456,11 @@ export default function SubcategoryAdminPage() {
                   }
                 }}
                 disabled={!isEditChanged()}
-                className={`mt-auto w-full py-2 rounded-xl text-white ${isEditChanged() ? "bg-[#8ed26b] hover:bg-[#6ebb53]" : "bg-gray-300 cursor-not-allowed"
-                  }`}
+                className={`mt-auto w-full py-2 rounded-xl text-white ${isEditChanged() ? "bg-[#8ed26b] hover:bg-[#6ebb53]" : "bg-gray-300 cursor-not-allowed"}`}
               >
                 Update
               </button>
+
 
               <button
                 onClick={() => setEditModalOpen(false)}

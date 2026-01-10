@@ -94,7 +94,7 @@ export default function FullNavbar() {
       id: "packer-movers",
       name: "Packer and Movers",
       subtitle: "Safe Relocation",
-    image_url: "/packer.jpg",
+      image_url: "/packer.jpg",
       link: "/site/services?topLevel=Relocation%20Services",
       subServices: [],
     },
@@ -109,7 +109,7 @@ export default function FullNavbar() {
     {
       id: "ask-expert",
       name: "Ask the Expert",
-      subtitle: "Well-prome tion pages",
+      subtitle: "Expert Guidance",
       image_url: "/exp.jpg",
       link: "/site/contact",
       subServices: [],
@@ -335,9 +335,14 @@ export default function FullNavbar() {
               <div className="flex items-center gap-2 md:gap-4">
                 {/* Order Tracking, Wishlist, Cart - Hidden on mobile, shown in menu */}
                 <div className="hidden md:flex gap-2 md:gap-4">
-                  <Link href="/site/order-tracking" title="Order Tracking" className="p-2">
-                    <PackageCheck className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
+                  <Link
+                    href="/site/order-tracking"
+                    title="Order Tracking"
+                    className="p-2 flex items-center space-x-2"
+                  >
+                    <span>Order Tracking</span>
                   </Link>
+
                   <Link href="/site/wishlist" title="Wishlist" className="p-2">
                     <Heart className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
                   </Link>
