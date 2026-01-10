@@ -446,7 +446,7 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
       await loadRazorpay();
 
       const options = {
-        key: "rzp_test_RpvE2nM5XUTYN7", // Replace with your Razorpay Key
+        key: "rzp_live_S1HqhGW9JawNX5", // Replace with your Razorpay Key
         amount: totalPrice * 100,
         currency: "INR",
         name: "Insta Fit Core",
