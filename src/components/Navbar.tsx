@@ -335,20 +335,24 @@ export default function FullNavbar() {
               <div className="flex items-center gap-2 md:gap-4">
                 {/* Order Tracking, Wishlist, Cart - Hidden on mobile, shown in menu */}
                 <div className="hidden md:flex gap-2 md:gap-4">
+                  {/* Order Tracking Button */}
                   <Link
                     href="/site/order-tracking"
                     title="Order Tracking"
-                    className="p-2 flex items-center space-x-2"
+                    className="hidden md:flex items-center gap-2 px-4 py-1.5 border-2 border-[#8ed26b] text-[#8ed26b] hover:bg-[#8ed26b] hover:text-white rounded-full text-sm font-bold transition-all duration-300"
                   >
                     <span>Order Tracking</span>
                   </Link>
 
-                  <Link href="/site/wishlist" title="Wishlist" className="p-2">
-                    <Heart className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
-                  </Link>
-                  <Link href="/site/cart" title="Cart" className="p-2">
-                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
-                  </Link>
+                  {/* Wishlist & Cart Icons */}
+                  <div className="hidden md:flex gap-2">
+                    <Link href="/site/wishlist" title="Wishlist" className="p-2">
+                      <Heart className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
+                    </Link>
+                    <Link href="/site/cart" title="Cart" className="p-2">
+                      <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-gray-700 hover:text-[#8ed26b] transition-colors" />
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="relative" ref={profileRef}>

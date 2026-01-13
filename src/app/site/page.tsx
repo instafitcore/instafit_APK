@@ -77,7 +77,7 @@ type TestimonialItem = {
 const SLIDES_DATA: Slide[] = [
   {
     id: 1,
-    img: "/pi.jpg",
+    img: "/ban1.jpg",
     mainHeader: "Trusted Furniture & Home Services",
     title: "What We Offer",
     subtitle: "Trusted, professional services designed for your convenience.",
@@ -85,7 +85,7 @@ const SLIDES_DATA: Slide[] = [
   },
   {
     id: 2,
-    img: "/pi2.jpg",
+    img: "/ban4.jpg",
     mainHeader: "Built on Expertise & Reliability",
     title: "Who We Are",
     subtitle: "Driven by expertise, guided by strong values, and committed to excellence.",
@@ -93,7 +93,7 @@ const SLIDES_DATA: Slide[] = [
   },
   {
     id: 3,
-    img: "/banner4.jpg",
+    img: "/ban3.jpg",
     mainHeader: "Let’s Work Together",
     title: "Get in Touch",
     subtitle: "Reach out to us for service bookings, support, or general inquiries.",
