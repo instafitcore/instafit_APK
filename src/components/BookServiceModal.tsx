@@ -22,11 +22,13 @@ type ServiceItem = {
   preferred_timings?: string[];
 };
 
-type Props = {
+interface Props {
   service: ServiceItem;
   isOpen: boolean;
   onClose: () => void;
-};
+  userEmail: string;      // ✅ Add this
+  isLoading?: boolean;    // ✅ Optional, since you might not always pass it
+}
 
 
 // --- New Address Type Definition (Mirroring the uploaded image) ---
