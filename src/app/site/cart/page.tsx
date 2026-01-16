@@ -461,7 +461,13 @@ export default function CartPage() {
         setError(null);
         try {
             const { data: sessionData } = await supabase.auth.getSession();
-            const userId = sessionData?.session?.user?.id;
+            const user = sessionData?.session?.user;
+
+            if (!user) throw new Error("User not logged in");
+
+            const userId = user.id;
+            const userEmail = user.email;
+
             if (!userId) {
                 setError("Please log in to view your cart.");
                 setCartItems([]);
@@ -526,56 +532,63 @@ export default function CartPage() {
     const taxAmount = Math.round(cartSubtotal * TAX_RATE);
     const cartTotal = cartSubtotal + taxAmount;
     const handleRazorpayPayment = useCallback(async () => {
-    setSubmitAttempted(true);
+        setSubmitAttempted(true);
 
-    // 1️⃣ Cart validation
-    if (cartItems.length === 0) {
-        toast({ title: "Cart empty", description: "Add items before checkout.", variant: "destructive" });
-        return;
-    }
-
-    // 2️⃣ Address validation
-    const errors = validateAddress(addressFields);
-    setAddressErrors(errors);
-
-    const hasInvalidItems = cartItems.some(it => !it.service || !it.selected_services?.length);
-    if (Object.keys(errors).length > 0 || hasInvalidItems) {
-        if (hasInvalidItems) {
-            toast({ title: "Selection missing", description: "Please select service options for all items.", variant: "destructive" });
+        // 1️⃣ Cart validation
+        if (cartItems.length === 0) {
+            toast({ title: "Cart empty", description: "Add items before checkout.", variant: "destructive" });
+            return;
         }
-        return;
-    }
 
-    // 3️⃣ Load Razorpay
-    try {
-        await loadRazorpay();
-    } catch {
-        toast({ title: "Payment Error", description: "Failed to load Razorpay.", variant: "destructive" });
-        return;
-    }
+        // 2️⃣ Address validation
+        const errors = validateAddress(addressFields);
+        setAddressErrors(errors);
 
-    // 4️⃣ Razorpay options
-    const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-        amount: cartTotal * 100,
-        currency: "INR",
-        name: "Insta Fit Core",
-        description: "Service Booking Payment",
-        prefill: { name: addressFields.customer_name, contact: addressFields.mobile },
-        theme: { color: PRIMARY_COLOR },
+        const hasInvalidItems = cartItems.some(it => !it.service || !it.selected_services?.length);
+        if (Object.keys(errors).length > 0 || hasInvalidItems) {
+            if (hasInvalidItems) {
+                toast({ title: "Selection missing", description: "Please select service options for all items.", variant: "destructive" });
+            }
+            return;
+        }
 
-        handler: async function (response: any) {
-            let bookingSuccessful = false;
-            try {
-                const { data: sessionData } = await supabase.auth.getSession();
-                const userId = sessionData?.session?.user?.id;
-                if (!userId) throw new Error("User not logged in");
+        // 3️⃣ Load Razorpay
+        try {
+            await loadRazorpay();
+        } catch {
+            toast({ title: "Payment Error", description: "Failed to load Razorpay.", variant: "destructive" });
+            return;
+        }
 
-                const now = new Date();
-                const bookingDate = now.toISOString().split("T")[0];
-                const bookingTime = now.toISOString().slice(11, 19);
+        // 4️⃣ Razorpay options
+        const options = {
+            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+            amount: cartTotal * 100,
+            currency: "INR",
+            name: "Insta Fit Core",
+            description: "Service Booking Payment",
+            prefill: { name: addressFields.customer_name, contact: addressFields.mobile },
+            theme: { color: PRIMARY_COLOR },
 
-                const fullAddress = `
+            handler: async function (response: any) {
+                let bookingSuccessful = false;
+                try {
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    const user = sessionData?.session?.user;
+
+                    if (!user) throw new Error("User not logged in");
+
+                    const userId = user.id;
+                    const userEmail = user.email;
+
+                    if (!userId) throw new Error("User not logged in");
+
+                    const now = new Date();
+                    const bookingDate = now.toISOString().split("T")[0];
+                    const bookingTime = now.toISOString().slice(11, 19);
+                    // --- 1. Generate a unique Order ID for this transaction ---
+                    const groupOrderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                    const fullAddress = `
 ${addressFields.flat_no}${addressFields.floor ? ", Floor " + addressFields.floor : ""}
 ${addressFields.building_name ? ", " + addressFields.building_name : ""}
 ${addressFields.street}
@@ -584,52 +597,71 @@ ${addressFields.landmark ? ", Near " + addressFields.landmark : ""}
 ${addressFields.city}, ${addressFields.state} - ${addressFields.pincode}
 `.replace(/\n/g, " ").trim();
 
-                const bookingRows = cartItems.map(item => ({
-                    user_id: userId,
-                    customer_name: addressFields.customer_name,
-                    customer_mobile: addressFields.mobile,
-                    date: bookingDate,
-                    booking_time: bookingTime,
-                    status: "Pending",
-                    service_name: item.service?.service_name || "Service",
-                    service_types: Array.isArray(item.selected_services) ? item.selected_services : [],
-                    total_price: cartTotal,
-                    address: fullAddress,
-                    service_id: item.service_id,
-                    payment_id: response.razorpay_payment_id,
-                }));
+                    const bookingRows = cartItems.map(item => ({
+                        user_id: userId,
+                        customer_name: addressFields.customer_name,
+                        customer_mobile: addressFields.mobile,
+                        date: bookingDate,
+                        booking_time: bookingTime,
+                        status: "Pending",
+                        service_name: item.service?.service_name || "Service",
+                        service_types: Array.isArray(item.selected_services) ? item.selected_services : [],
+                        total_price:
+                            item.quantity *
+                            calculateUnitServicePrice(item.service, item.selected_services),
+                        address: fullAddress,
+                        service_id: item.service_id,
+                        payment_id: response.razorpay_payment_id,
+                    }));
 
-                const { error: bookingError } = await supabase.from("bookings").insert(bookingRows);
-                if (bookingError) throw bookingError;
+                    const { error: bookingError } = await supabase.from("bookings").insert(bookingRows);
+                    if (bookingError) throw bookingError;
 
-                bookingSuccessful = true;
+                    bookingSuccessful = true;
 
-                // Clear cart
-                await supabase.from("cart_items").delete().eq("user_id", userId);
-                setCartItems([]);
+                    // Clear cart
+                    await supabase.from("cart_items").delete().eq("user_id", userId);
+                    setCartItems([]);
 
-                toast({ title: "Booking confirmed", description: "Your service has been booked successfully.", variant: "success" });
-                router.push("/site/order-tracking");
+                    toast({ title: "Booking confirmed", description: "Your service has been booked successfully.", variant: "success" });
+                    if (userEmail) {
+                        await fetch("/api/send-email", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                email: userEmail,
+                                name: addressFields.customer_name,
+                                service: cartItems.map(i => i.service?.service_name).join(", "),
+                                date: bookingDate,
+                                time: bookingTime,
+                                amount: cartTotal,
+                                orderId: groupOrderId,
+                            }),
+                        });
+                    }
 
-            } catch (err: any) {
-                console.error("Booking insert failed:", err);
+                    router.push("/site/order-tracking");
 
-                if (bookingSuccessful) return; // unlikely, just safety
 
-                // Payment succeeded but booking failed
-                toast({
-                    title: "Payment successful, booking failed",
-                    description: "Your payment was received, but we could not create the booking. Please contact support with your payment ID: " + response.razorpay_payment_id,
-                    variant: "destructive",
-                });
-            }
-        },
-    };
+                } catch (err: any) {
+                    console.error("Booking insert failed:", err);
 
-    const razorpay = new (window as any).Razorpay(options);
-    razorpay.open();
+                    if (bookingSuccessful) return; // unlikely, just safety
 
-}, [cartItems, cartTotal, addressFields, toast, router]);
+                    // Payment succeeded but booking failed
+                    toast({
+                        title: "Payment successful, booking failed",
+                        description: "Your payment was received, but we could not create the booking. Please contact support with your payment ID: " + response.razorpay_payment_id,
+                        variant: "destructive",
+                    });
+                }
+            },
+        };
+
+        const razorpay = new (window as any).Razorpay(options);
+        razorpay.open();
+
+    }, [cartItems, cartTotal, addressFields, toast, router]);
 
     const validateAddress = (f: AddressFields) => {
         const errors: { [key: string]: string } = {};

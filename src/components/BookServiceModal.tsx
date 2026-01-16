@@ -26,9 +26,8 @@ type Props = {
   service: ServiceItem;
   isOpen: boolean;
   onClose: () => void;
-  isLoading: boolean;
-  userEmail: string; // ✅ Add this
 };
+
 
 // --- New Address Type Definition (Mirroring the uploaded image) ---
 type ServiceAddress = {
@@ -446,7 +445,7 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
       await loadRazorpay();
 
       const options = {
-        key: "rzp_live_S1HqhGW9JawNX5", // Replace with your Razorpay Key
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
         amount: totalPrice * 100,
         currency: "INR",
         name: "Insta Fit Core",
@@ -486,6 +485,7 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
   };
 
   // --- Save booking after payment ---
+  // --- Save booking after payment ---
   const handleSubmit = async (payment_id?: string) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -495,7 +495,8 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
         `${address.flatHousePlot}, Floor ${address.floor}, ${address.buildingApartment}, ${address.streetLocality}, ${address.areaZone}, ${address.cityTown}, ${address.state} - ${address.pincode}` +
         (address.landmark.trim() ? ` (Landmark: ${address.landmark})` : '');
 
-      const { data } = await supabase
+      // 1. Insert and explicitly select the generated columns
+      const { data: insertedData, error: insertError } = await supabase
         .from("bookings")
         .insert([
           {
@@ -506,25 +507,43 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
             service_name: service.service_name,
             service_types: serviceTypes,
             date,
-            booking_time: `${to24HourTime(time)}:00`, 
+            booking_time: `${to24HourTime(time)}:00`,
             total_price: totalPrice,
             address: formattedAddress,
             status: payment_id ? "Paid" : "Pending",
             payment_id: payment_id || null,
           },
         ])
-        .select()
-        .throwOnError();
+        .select() // This ensures Supabase returns the created row including order_no
+        .single(); // Get the single object back
 
-      // ✅ SUCCESS
+      if (insertError) throw insertError;
+
+      // ✅ SUCCESS STATUS
       setSubmissionStatus('success');
 
-      const orderNumber = data?.[0]?.order_no || "N/A";
+      // 2. Use the order_no from the database response
+      const dbOrderNo = insertedData?.order_no || "N/A";
 
       toast({
         title: "Booking successful!",
-        description: `Your booking for ${service.service_name} has been confirmed. Order No: ${orderNumber}`,
+        description: `Your booking for ${service.service_name} has been confirmed. Order No: ${dbOrderNo}`,
         variant: "success",
+      });
+
+      // 3. Send Email with the DB Order Number
+      await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: userData.user.email,
+          name: address.fullName,
+          service: service.service_name,
+          date,
+          time,
+          amount: totalPrice,
+          orderId: dbOrderNo, // Using the ID from DB, not payment_id
+        }),
       });
 
       onClose();
@@ -532,9 +551,7 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
 
     } catch (err: any) {
       console.error("Booking failed:", err);
-
       setSubmissionStatus('error');
-
       toast({
         title: "Booking failed",
         description: err?.message || "Unexpected error occurred. Please try again.",
@@ -544,7 +561,6 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
       setIsSubmitting(false);
     }
   };
-
 
   if (!isOpen) return null;
 
