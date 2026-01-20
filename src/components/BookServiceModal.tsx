@@ -436,135 +436,196 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
     address.fullName.trim() && address.mobile.trim() && address.pincode.trim();
 
   // --- Razorpay Payment ---
-  const handleRazorpayPayment = async () => {
-    if (!validateForm() || isSubmitting) return;
-    setIsSubmitting(true);
+ const handleRazorpayPayment = async () => {
+  if (!validateForm() || isSubmitting) return;
+  setIsSubmitting(true);
 
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("User not logged in");
+  try {
+    // 1️⃣ Get logged-in user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      throw new Error("User not logged in");
+    }
 
-      await loadRazorpay();
+    // 2️⃣ Load Razorpay SDK safely
+    const sdkLoaded = await loadRazorpay()
+      .then(() => true)
+      .catch(() => false);
 
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-        amount: totalPrice * 100,
-        currency: "INR",
-        name: "Insta Fit Core",
-        description: `Payment for ${service.service_name}`,
-        handler: async (response: any) => {
-          await handleSubmit(response.razorpay_payment_id);
-        },
-        prefill: {
-          email: userData.user.email,
-          contact: address.mobile || userData.user.phone || "9999999999", // Use validated mobile
-        },
-      };
+    if (!sdkLoaded || !(window as any).Razorpay) {
+      throw new Error("Razorpay SDK failed to load");
+    }
 
-      const rzp = new (window as any).Razorpay(options);
+    // 3️⃣ Create Razorpay order (SERVER)
+    const orderRes = await fetch("/api/razorpay/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: Math.round(totalPrice * 100), // ✅ integer
+      }),
+    });
 
-      rzp.on('payment.failed', function (response: any) {
-        console.error("Payment failed:", response.error);
-        toast({
-          title: "Payment failed",
-          description: response.error.description || "Please try again.",
-          variant: "destructive",
+    if (!orderRes.ok) {
+      const errText = await orderRes.text();
+      console.error("Order API failed:", errText);
+      throw new Error("Order creation failed");
+    }
+
+    const order = await orderRes.json();
+
+    if (!order?.id) {
+      throw new Error("Invalid order response");
+    }
+
+    // 4️⃣ Razorpay options
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+      amount: order.amount,
+      currency: "INR",
+      order_id: order.id,
+      name: "Insta Fit Core",
+      description: `Payment for ${service.service_name}`,
+
+      handler: async (response: any) => {
+        await verifyAndSavePayment({
+          payment_id: response.razorpay_payment_id,
+          order_id: response.razorpay_order_id,
+          signature: response.razorpay_signature,
         });
-        setIsSubmitting(false);
-      });
+      },
 
-      rzp.open();
+      prefill: {
+        email: userData.user.email || "",
+        contact: address.mobile || "9999999999",
+      },
 
-    } catch (err) {
-      console.error(err);
+      theme: {
+        color: "#8ed26b",
+      },
+    };
+
+    // 5️⃣ Open Razorpay
+    const rzp = new (window as any).Razorpay(options);
+
+    rzp.on("payment.failed", function (response: any) {
+      console.error("Payment failed:", response.error);
       toast({
-        title: "Payment Error",
-        description: "Unable to start payment. Please try again.",
+        title: "Payment failed",
+        description: response.error.description || "Please try again",
         variant: "destructive",
       });
       setIsSubmitting(false);
-    }
-  };
+    });
+
+    rzp.open();
+
+  } catch (err: any) {
+    console.error("Razorpay start error:", err);
+    toast({
+      title: "Payment Error",
+      description: err?.message || "Unable to start payment",
+      variant: "destructive",
+    });
+    setIsSubmitting(false);
+  }
+};
+
 
   // --- Save booking after payment ---
   // --- Save booking after payment ---
-  const handleSubmit = async (payment_id?: string) => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("User not logged in");
+ const handleSubmit = async (payment_id?: string, order_id?: string) => {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error("User not logged in");
 
-      const formattedAddress =
-        `${address.flatHousePlot}, Floor ${address.floor}, ${address.buildingApartment}, ${address.streetLocality}, ${address.areaZone}, ${address.cityTown}, ${address.state} - ${address.pincode}` +
-        (address.landmark.trim() ? ` (Landmark: ${address.landmark})` : '');
+    const formattedAddress =
+      `${address.flatHousePlot}, Floor ${address.floor}, ${address.buildingApartment}, ${address.streetLocality}, ${address.areaZone}, ${address.cityTown}, ${address.state} - ${address.pincode}` +
+      (address.landmark.trim() ? ` (Landmark: ${address.landmark})` : '');
 
-      // 1. Insert and explicitly select the generated columns
-      const { data: insertedData, error: insertError } = await supabase
-        .from("bookings")
-        .insert([
-          {
-            user_id: userData.user.id,
-            customer_name: address.fullName,
-            customer_mobile: address.mobile,
-            service_id: service.id,
-            service_name: service.service_name,
-            service_types: serviceTypes,
-            date,
-            booking_time: `${to24HourTime(time)}:00`,
-            total_price: totalPrice,
-            address: formattedAddress,
-            status: payment_id ? "Paid" : "Pending",
-            payment_id: payment_id || null,
-          },
-        ])
-        .select() // This ensures Supabase returns the created row including order_no
-        .single(); // Get the single object back
-
-      if (insertError) throw insertError;
-
-      // ✅ SUCCESS STATUS
-      setSubmissionStatus('success');
-
-      // 2. Use the order_no from the database response
-      const dbOrderNo = insertedData?.order_no || "N/A";
-
-      toast({
-        title: "Booking successful!",
-        description: `Your booking for ${service.service_name} has been confirmed. Order No: ${dbOrderNo}`,
-        variant: "success",
-      });
-
-      // 3. Send Email with the DB Order Number
-      await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: userData.user.email,
-          name: address.fullName,
-          service: service.service_name,
+    const { data: insertedData, error: insertError } = await supabase
+      .from("bookings")
+      .insert([
+        {
+          user_id: userData.user.id,
+          customer_name: address.fullName,
+          customer_mobile: address.mobile,
+          service_id: service.id,
+          service_name: service.service_name,
+          service_types: serviceTypes,
           date,
-          time,
-          amount: totalPrice,
-          orderId: dbOrderNo, // Using the ID from DB, not payment_id
-        }),
-      });
+          booking_time: `${to24HourTime(time)}:00`,
+          total_price: totalPrice,
+          address: formattedAddress,
 
-      onClose();
-      router.push("/site/order-tracking");
+          // ✅ SAVE BOTH
+          status: payment_id ? "Paid" : "Pending",
+          payment_id: payment_id || null,
+          razorpay_order_id: order_id || null,
+        },
+      ])
+      .select()
+      .single();
 
-    } catch (err: any) {
-      console.error("Booking failed:", err);
-      setSubmissionStatus('error');
-      toast({
-        title: "Booking failed",
-        description: err?.message || "Unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    if (insertError) throw insertError;
 
-  if (!isOpen) return null;
+    setSubmissionStatus("success");
+
+    const dbOrderNo = insertedData?.order_no || "N/A";
+
+    toast({
+      title: "Booking successful!",
+      description: `Your booking is confirmed. Order No: ${dbOrderNo}`,
+      variant: "success",
+    });
+
+    await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: userData.user.email,
+        name: address.fullName,
+        service: service.service_name,
+        date,
+        time,
+        amount: totalPrice,
+        orderId: dbOrderNo,
+      }),
+    });
+
+    onClose();
+    router.push("/site/order-tracking");
+
+  } catch (err: any) {
+    console.error("Booking failed:", err);
+    setSubmissionStatus("error");
+    toast({
+      title: "Booking failed",
+      description: err?.message || "Unexpected error occurred. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
+const verifyAndSavePayment = async ({ payment_id, order_id, signature }: any) => {
+  const res = await fetch("/api/razorpay/verify-payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ payment_id, order_id, signature }),
+  });
+
+  const data = await res.json(); // now it will not fail
+
+  if (!data?.success) {
+    throw new Error(data?.error || "Payment verification failed");
+  }
+
+  await handleSubmit(payment_id, order_id);
+};
+
+if (!isOpen) return null;
 
   const availableServices = SERVICE_TYPES.filter(opt => Number(service[opt.priceKey]) > 0);
   // Type guard for nested address errors

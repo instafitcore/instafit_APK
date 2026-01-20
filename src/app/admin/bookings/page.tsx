@@ -6,12 +6,13 @@ import { Search, User, Phone, X, Calendar, DollarSign, Clock } from "lucide-reac
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-            {/* --- FILTER CARD --- */}
+{/* --- FILTER CARD --- */ }
 import { ChevronDown, XCircle } from "lucide-react";
 
 type Booking = {
     id: number;
     order_no: string;
+    razorpay_order_id?: string | null;
     user_id: string | null;
     customer_name: string;
     service_name: string;
@@ -287,75 +288,75 @@ export default function BookingsPage() {
             </div>
 
 
-{/* --- FILTER CARD --- */}
-<div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100 mb-8">
-  <div className="flex justify-between items-center mb-6">
-    <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
-      Filter & Search
-    </h2>
-    <div className="px-4 py-1.5 bg-gray-50 rounded-full text-sm font-semibold text-instafitcore-green-hover border border-gray-100">
-      Total Bookings: {loading ? "..." : bookings.length}
-    </div>
-  </div>
+            {/* --- FILTER CARD --- */}
+            <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100 mb-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
+                        Filter & Search
+                    </h2>
+                    <div className="px-4 py-1.5 bg-gray-50 rounded-full text-sm font-semibold text-instafitcore-green-hover border border-gray-100">
+                        Total Bookings: {loading ? "..." : bookings.length}
+                    </div>
+                </div>
 
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-    
-    {/* 1. Search */}
-    <div className="relative">
-      <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-      <input
-        type="text"
-        placeholder="Search..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-instafitcore-green focus:border-instafitcore-green outline-none transition-all"
-      />
-   </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
-    {/* 2. Status Filter with Down Arrow */}
-    <div className="relative">
-      <select
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-        className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:ring-2 focus:ring-instafitcore-green focus:border-instafitcore-green outline-none cursor-pointer text-gray-700"
-      >
-        <option>All Status</option>
-        {STATUS_OPTIONS.map((s) => (
-          <option key={`filter-${s}`} value={s}>{s}</option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-4 h-4" />
-    </div>
+                    {/* 1. Search */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-instafitcore-green focus:border-instafitcore-green outline-none transition-all"
+                        />
+                    </div>
 
-    {/* 3. Service Type Filter with Down Arrow */}
-    <div className="relative">
-      <select
-        value={serviceTypeFilter}
-        onChange={(e) => setServiceTypeFilter(e.target.value)}
-        className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:ring-2 focus:ring-instafitcore-green focus:border-instafitcore-green outline-none cursor-pointer text-gray-700"
-      >
-        <option>All Service Types</option>
-        <option>Installation</option>
-        <option>Dismantle</option>
-        <option>Repair</option>
-      </select>
-      <ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-4 h-4" />
-    </div>
+                    {/* 2. Status Filter with Down Arrow */}
+                    <div className="relative">
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:ring-2 focus:ring-instafitcore-green focus:border-instafitcore-green outline-none cursor-pointer text-gray-700"
+                        >
+                            <option>All Status</option>
+                            {STATUS_OPTIONS.map((s) => (
+                                <option key={`filter-${s}`} value={s}>{s}</option>
+                            ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-4 h-4" />
+                    </div>
 
-    {/* 4. Action Button */}
-    <button
-      onClick={() => {
-        setSearch("");
-        setStatusFilter("All Status");
-        setServiceTypeFilter("All Service Types");
-      }}
-      className="w-full py-2.5 text-gray-500 font-medium border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-700 transition-all flex items-center justify-center gap-2"
-    >
-      <XCircle size={18} />
-      Clear Filters
-    </button>
-  </div>
-</div>
+                    {/* 3. Service Type Filter with Down Arrow */}
+                    <div className="relative">
+                        <select
+                            value={serviceTypeFilter}
+                            onChange={(e) => setServiceTypeFilter(e.target.value)}
+                            className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:ring-2 focus:ring-instafitcore-green focus:border-instafitcore-green outline-none cursor-pointer text-gray-700"
+                        >
+                            <option>All Service Types</option>
+                            <option>Installation</option>
+                            <option>Dismantle</option>
+                            <option>Repair</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-4 h-4" />
+                    </div>
+
+                    {/* 4. Action Button */}
+                    <button
+                        onClick={() => {
+                            setSearch("");
+                            setStatusFilter("All Status");
+                            setServiceTypeFilter("All Service Types");
+                        }}
+                        className="w-full py-2.5 text-gray-500 font-medium border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-700 transition-all flex items-center justify-center gap-2"
+                    >
+                        <XCircle size={18} />
+                        Clear Filters
+                    </button>
+                </div>
+            </div>
 
             <hr className="my-6 border-gray-200" />
 
@@ -367,6 +368,8 @@ export default function BookingsPage() {
                             <th className="p-4">Order No</th>
 
                             <th className="p-4">Customer</th>
+                            <th className="p-4">Razorpay Order ID</th>
+
                             <th className="p-4">Service</th>
                             <th className="p-4">Date & Time</th>
                             <th className="p-4 text-right">Price</th>
@@ -378,18 +381,26 @@ export default function BookingsPage() {
                     <tbody className="text-gray-800 divide-y divide-gray-100">
                         {/* Loading/No Bookings logic */}
                         {loading || filtered.length === 0 ? (
-                            <tr><td colSpan={7} className="p-10 text-center text-gray-500 text-lg">{loading ? "Loading bookings..." : "No bookings found matching filters."}</td></tr>
+                            <tr><td colSpan={8} className="p-10 text-center text-gray-500 text-lg">{loading ? "Loading bookings..." : "No bookings found matching filters."}</td></tr>
                         ) : (
                             filtered.map((b) => (
                                 <tr key={b.id} className="hover:bg-blue-50/50 transition-colors duration-150">
                                     <td className="p-4 font-mono text-sm text-gray-700 whitespace-nowrap">
                                         {b.order_no}
                                     </td>
-
                                     <td className="p-4 font-semibold">
                                         {b.customer_name}
                                         <div className="text-xs text-gray-500 font-normal mt-0.5">Types: {b.service_types.join(", ")}</div>
                                     </td>
+                                    <td className="p-4 font-mono text-xs text-gray-600 whitespace-nowrap">
+                                        {b.razorpay_order_id ? (
+                                            b.razorpay_order_id
+                                        ) : (
+                                            <span className="text-gray-400 italic">Not Generated</span>
+                                        )}
+                                    </td>
+
+
                                     <td className="p-4 font-medium">{b.service_name}</td>
                                     <td className="p-4 text-sm whitespace-nowrap">
                                         <div className="flex items-center space-x-1 text-gray-600">
