@@ -2,14 +2,13 @@ import Razorpay from "razorpay";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { amount } = body;
+    const { amount } = await req.json();
 
     if (!amount) {
-      return new Response(JSON.stringify({ success: false, error: "Amount is required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ success: false, error: "Amount is required" }),
+        { status: 400 }
+      );
     }
 
     const razorpay = new Razorpay({
@@ -20,18 +19,15 @@ export async function POST(req: Request) {
     const order = await razorpay.orders.create({
       amount,
       currency: "INR",
-      payment_capture: 1,
+      payment_capture: true,
     });
 
-    return new Response(JSON.stringify(order), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify(order), { status: 200 });
 
   } catch (err: any) {
-    return new Response(JSON.stringify({ success: false, error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: false, error: err.message }),
+      { status: 500 }
+    );
   }
 }
