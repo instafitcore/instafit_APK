@@ -609,19 +609,19 @@ export default function CartPage() {
 
     // Unified handleSubmit (matches modal)
     const handleSubmit = async (payment_id?: string, order_id?: string) => {
-    try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const user = sessionData?.session?.user;
-        if (!user) throw new Error("User not logged in");
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const user = sessionData?.session?.user;
+            if (!user) throw new Error("User not logged in");
 
-        const userId = user.id;
-        const userEmail = user.email;
+            const userId = user.id;
+            const userEmail = user.email;
 
-        const now = new Date();
-        const bookingDate = now.toISOString().split("T")[0]; // e.g., "2023-10-01"
-        const bookingTime = now.toISOString().slice(11, 19); // e.g., "14:30:00"
+            const now = new Date();
+            const bookingDate = now.toISOString().split("T")[0]; // e.g., "2023-10-01"
+            const bookingTime = now.toISOString().slice(11, 19); // e.g., "14:30:00"
 
-        const fullAddress = `
+            const fullAddress = `
             ${addressFields.flatHousePlot}${addressFields.floor ? ", Floor " + addressFields.floor : ""}
             ${addressFields.buildingApartment ? ", " + addressFields.buildingApartment : ""}
             ${addressFields.streetLocality}
@@ -630,73 +630,73 @@ export default function CartPage() {
             ${addressFields.cityTown}, ${addressFields.state} - ${addressFields.pincode}
         `.replace(/\n/g, " ").trim();
 
-        const bookingRows = cartItems.map((item) => ({
-            user_id: userId,
-            customer_name: addressFields.fullName.slice(0, 255), // TEMP: Truncate if needed
-            customer_mobile: addressFields.mobile, // Already 10 digits
-            date: bookingDate,
-            booking_time: bookingTime,
-            status: payment_id ? "Paid" : "Pending",
-            service_name: (item.service?.service_name || "Service").slice(0, 255), // TEMP: Truncate
-            service_types: Array.isArray(item.selected_services) ? item.selected_services : [],
-            total_price: item.quantity * calculateUnitServicePrice(item.service, item.selected_services),
-            address: fullAddress.slice(0, 500), // TEMP: Truncate long addresses
-            service_id: item.service_id,
-payment_id: payment_id || null,
-razorpay_order_id: order_id || null,
-        }));
+            const bookingRows = cartItems.map((item) => ({
+                user_id: userId,
+                customer_name: addressFields.fullName.slice(0, 255), // TEMP: Truncate if needed
+                customer_mobile: addressFields.mobile, // Already 10 digits
+                date: bookingDate,
+                booking_time: bookingTime,
+                status: payment_id ? "Paid" : "Pending",
+                service_name: (item.service?.service_name || "Service").slice(0, 255), // TEMP: Truncate
+                service_types: Array.isArray(item.selected_services) ? item.selected_services : [],
+                total_price: item.quantity * calculateUnitServicePrice(item.service, item.selected_services),
+                address: fullAddress.slice(0, 500), // TEMP: Truncate long addresses
+                service_id: item.service_id,
+                payment_id: payment_id || null,
+                razorpay_order_id: order_id || null,
+            }));
 
-        const { data, error: bookingError } = await supabase
-            .from("bookings")
-            .insert(bookingRows)
-            .select();
-const generatedOrderNo = data?.[0]?.order_no;
+            const { data, error: bookingError } = await supabase
+                .from("bookings")
+                .insert(bookingRows)
+                .select();
+            const generatedOrderNo = data?.[0]?.order_no;
 
-        if (bookingError) throw bookingError;
+            if (bookingError) throw bookingError;
 
-        console.log("Booking inserted:", data);
+            console.log("Booking inserted:", data);
 
-        const servicesBooked = cartItems.map((i) => i.service?.service_name || "Unknown Service").join(", ");
+            const servicesBooked = cartItems.map((i) => i.service?.service_name || "Unknown Service").join(", ");
 
-        await supabase.from("cart_items").delete().eq("user_id", userId);
-        setCartItems([]);
+            await supabase.from("cart_items").delete().eq("user_id", userId);
+            setCartItems([]);
 
-        toast({
-            title: "Booking confirmed",
-            description: "Your service has been booked successfully.",
-            variant: "success",
-        });
-
-        if (userEmail) {
-            await fetch("/api/send-email", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: userEmail,
-                    name: addressFields.fullName,
-                    service: servicesBooked,
-                    date: bookingDate,
-                    time: bookingTime,
-                    amount: cartTotal,
-payment_id: payment_id || null,
-razorpay_order_id: order_id || null,
-                }),
+            toast({
+                title: "Booking confirmed",
+                description: "Your service has been booked successfully.",
+                variant: "success",
             });
+
+            if (userEmail) {
+                await fetch("/api/send-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: userEmail,
+                        name: addressFields.fullName,
+                        service: servicesBooked,
+                        date: bookingDate,
+                        time: bookingTime,
+                        amount: cartTotal,
+                        payment_id: payment_id || null,
+                        razorpay_order_id: order_id || null,
+                    }),
+                });
+            }
+
+            router.push("/site/order-tracking");
+
+        } catch (err: any) {
+            console.error("Booking insert failed:", err?.message || err);
+            toast({
+                title: "Payment successful, booking failed",
+                description: "Please contact support with payment ID: " + (payment_id || "N/A"),
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
         }
-
-        router.push("/site/order-tracking");
-
-    } catch (err: any) {
-        console.error("Booking insert failed:", err?.message || err);
-        toast({
-            title: "Payment successful, booking failed",
-            description: "Please contact support with payment ID: " + (payment_id || "N/A"),
-            variant: "destructive",
-        });
-    } finally {
-        setIsSubmitting(false);
-    }
-};
+    };
     // Updated Razorpay payment (matches modal)
     const handleRazorpayPayment = useCallback(async () => {
         setSubmitAttempted(true);
@@ -833,7 +833,7 @@ razorpay_order_id: order_id || null,
         );
     };
 
-       useEffect(() => {
+    useEffect(() => {
         const errors = validateAddress(addressFields);
         setAddressErrors(errors);
 

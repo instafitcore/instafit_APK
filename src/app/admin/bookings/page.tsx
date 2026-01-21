@@ -76,54 +76,93 @@ export default function BookingsPage() {
     // -------------------
 
     const downloadExcel = () => {
-        const dataToExport = filtered.map(b => ({
+        const dataToExport = filtered.map((b, index) => ({
+            "S.No": index + 1,
             "Order No": b.order_no,
-            Customer: b.customer_name,
-            Service: b.service_name,
-            Types: b.service_types.join(", "),
-            Date: b.date,
-            Time: b.booking_time,
-            Price: b.total_price,
-            Address: b.address || "N/A",
-            Employee: b.employee_name || "Not Assigned",
-            Phone: b.employee_phone || "N/A",
-            Status: b.status,
-            Payment: b.payment_status || "N/A",
+            "Razorpay Order ID": b.razorpay_order_id || "Not Generated",
+            "Customer Name": b.customer_name,
+            "User ID": b.user_id || "Guest",
+            "Service Name": b.service_name,
+            "Service Types": b.service_types.join(", "),
+            "Booking Date": b.date,
+            "Booking Time": b.booking_time,
+            "Total Price (₹)": b.total_price,
+            "Address": b.address || "Not Provided",
+            "Employee Name": b.employee_name || "Not Assigned",
+            "Employee Phone": b.employee_phone || "N/A",
+            "Booking Status": b.status,
+            "Payment Status": b.payment_status || "N/A",
+            "Created At": new Date(b.created_at).toLocaleString(),
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Bookings");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "All Bookings");
 
-        XLSX.writeFile(workbook, "Bookings.xlsx");
+        XLSX.writeFile(workbook, "Bookings_Full_Report.xlsx");
     };
+
     const downloadPDF = () => {
-        const doc = new jsPDF();
+        const doc = new jsPDF("l", "pt", "a4"); // landscape for wide table
 
         doc.setFontSize(18);
-        doc.text("Bookings Report", 14, 20);
+        doc.text("Complete Bookings Report", 40, 40);
 
-        const tableData = filtered.map(b => [
+        const tableData = filtered.map((b, index) => [
+            index + 1,
             b.order_no,
+            b.razorpay_order_id || "Not Generated",
             b.customer_name,
             b.service_name,
+            b.service_types.join(", "),
             b.date,
             b.booking_time,
-            b.total_price,
-            b.status
+            `₹${b.total_price}`,
+            b.address || "N/A",
+            b.employee_name || "Not Assigned",
+            b.employee_phone || "N/A",
+            b.status,
+            b.payment_status || "N/A",
+            new Date(b.created_at).toLocaleString(),
         ]);
 
-
         autoTable(doc, {
-            head: [["Order No", "Customer", "Service", "Date", "Time", "Price", "Status"]],
+            startY: 70,
+            head: [[
+                "S.No",
+                "Order No",
+                "Razorpay ID",
+                "Customer",
+                "Service",
+                "Types",
+                "Date",
+                "Time",
+                "Price",
+                "Address",
+                "Employee",
+                "Phone",
+                "Status",
+                "Payment",
+                "Created At"
+            ]],
             body: tableData,
-            startY: 30,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [52, 152, 219] }
+            styles: {
+                fontSize: 8,
+                cellPadding: 4,
+            },
+            headStyles: {
+                fillColor: [46, 204, 113], // green
+                textColor: 255,
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+            },
+            margin: { left: 40, right: 40 },
         });
 
-        doc.save("Bookings.pdf");
+        doc.save("Bookings_Full_Report.pdf");
     };
+
 
 
     // Fetches initial data

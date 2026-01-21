@@ -60,9 +60,11 @@ export default function Footer() {
                 <li className="ml-2"><a href="/site/services?typeId=1" className="hover:text-instafitcore-green transition-colors block">» Installation</a></li>
                 <li className="ml-2"><a href="/site/services?typeId=2" className="hover:text-instafitcore-green transition-colors block">» Dismantling</a></li>
                 <li className="ml-2 mb-1"><a href="/site/services?typeId=3" className="hover:text-instafitcore-green transition-colors block">» Repair</a></li>
-                <li><a href="/site/services?topLevel=Customized%20Modular%20Furniture" className="hover:text-instafitcore-green transition-colors block">» Modular</a></li>
+                <li><a href="/site/services?topLevel=Customized%20Modular%20Furniture" className="hover:text-instafitcore-green transition-colors block">» Modular Furniture</a></li>
                 <li><a href="/site/services?topLevel=Relocation%20Services" className="hover:text-instafitcore-green transition-colors block">» Movers</a></li>
-              </ul>
+                <li><a href="/site/services?topLevel=Customized%20Modular%20Kitchen" className="hover:text-instafitcore-green transition-colors block">» Modular Kitchen</a></li>
+                 <li><a href="/site/services?topLevel=B2B%20Services" className="hover:text-instafitcore-green transition-colors block">» B2B Services</a></li>
+             </ul>
             </div>
           </div>
 
