@@ -598,9 +598,13 @@ const TestimonialSection: React.FC = () => {
 // ====================================================================
 // NEW: PROJECTS SLIDER COMPONENT (Horizontal Scroll)
 // ====================================================================
+// ====================================================================
+// NEW: PROJECTS SLIDER COMPONENT (Horizontal Scroll with Slow Auto-Scroll and Multi-Media)
+// ====================================================================
 const ProjectsSlider: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -613,11 +617,29 @@ const ProjectsSlider: React.FC = () => {
     fetchProjects();
   }, []);
 
+  // Slow continuous auto-scroll from left to right
+  useEffect(() => {
+    if (projects.length === 0 || !scrollRef.current) return;
+
+    const interval = setInterval(() => {
+      if (isPaused) return;
+      const container = scrollRef.current!;
+      const scrollAmount = 1; // Scroll by 1 pixel for slow movement (adjust for speed)
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (container.scrollLeft >= maxScroll) {
+        container.scrollLeft = 0; // Reset to start
+      } else {
+        container.scrollLeft += scrollAmount;
+      }
+    }, 50); // Update every 50ms for smooth slow scroll (adjust for speed)
+
+    return () => clearInterval(interval);
+  }, [projects.length, isPaused]);
+
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
       const { scrollLeft, clientWidth } = scrollRef.current;
-      // Scroll by one card width
-      const scrollAmount = clientWidth > 768 ? 450 : 300;
+      const scrollAmount = clientWidth > 768 ? 350 : 250; // Adjusted for new card width
       const scrollTo = direction === "left" ? scrollLeft - scrollAmount : scrollLeft + scrollAmount;
       scrollRef.current.scrollTo({ left: scrollTo, behavior: "smooth" });
     }
@@ -662,46 +684,78 @@ const ProjectsSlider: React.FC = () => {
       {/* SCROLLABLE CONTAINER */}
       <div
         ref={scrollRef}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
         className="flex gap-6 overflow-x-auto px-6 pb-10 no-scrollbar snap-x snap-mandatory"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {projects.map((project) => (
-          <div
-            key={project.id}
-            /* Same width for all cards */
-            className="w-[300px] md:w-[450px] flex-shrink-0 snap-center group"
-          >
-            <div className="relative h-[300px] md:h-[400px] w-full rounded-[2rem] overflow-hidden shadow-lg bg-gray-100 border border-gray-100">
-
-              {project.media_type === "video" ? (
-                <video
-                  src={project.media_url}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                />
-              ) : (
-                <Image
-                  src={project.media_url}
-                  alt={project.title}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-              )}
-
-              {/* Overlay Text */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-8">
-                <p className="text-white/80 text-sm line-clamp-2 italic leading-relaxed">
-                  {project.description}
-                </p>
-              </div>
-            </div>
-          </div>
+          <ProjectSliderCard key={project.id} project={project} />
         ))}
       </div>
     </section>
+  );
+};
+
+// Separate component for each project card with auto-scrolling media and text below
+const ProjectSliderCard: React.FC<{ project: any }> = ({ project }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const mediaUrls = project.media_url
+    ? project.media_url.split(",")
+    : [];
+
+  const mediaTypes = project.media_type
+    ? project.media_type.split(",")
+    : [];
+
+  // ✅ Auto change media smoothly
+  useEffect(() => {
+    if (mediaUrls.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % mediaUrls.length);
+    }, 3000); // ⏳ slow & smooth (3s)
+
+    return () => clearInterval(interval);
+  }, [mediaUrls.length]);
+
+  const currentUrl = mediaUrls[currentIndex] || "";
+  const currentType = mediaTypes[currentIndex] || "image";
+
+  return (
+    <div className="w-[250px] md:w-[350px] flex-shrink-0 bg-white rounded-[2rem] shadow-lg overflow-hidden border border-gray-100 group">
+      {/* MEDIA */}
+      <div className="relative h-[200px] md:h-[250px] w-full bg-gray-100 overflow-hidden">
+        {currentType === "video" ? (
+          <video
+            src={currentUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Image
+            src={currentUrl}
+            alt={project.title}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        )}
+      </div>
+
+      {/* TEXT */}
+      <div className="p-4">
+        <h3 className="font-bold text-lg text-gray-800 line-clamp-2 mb-2">
+          {project.title}
+        </h3>
+        <p className="text-sm text-gray-500 line-clamp-2">
+          {project.description || "No description available."}
+        </p>
+      </div>
+    </div>
   );
 };
 // ====================================================================

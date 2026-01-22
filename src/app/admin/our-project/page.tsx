@@ -23,8 +23,8 @@ interface Project {
   id: number;
   title: string;
   description: string;
-  media_url: string;
-  media_type: "image" | "video";
+  media_url: string; // Comma-separated URLs for multiple media
+  media_type: string; // Comma-separated types for multiple media
   created_at: string;
 }
 
@@ -39,7 +39,7 @@ export default function OurProjectPage() {
   // Form State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
 
   useEffect(() => {
     fetchProjects();
@@ -50,7 +50,7 @@ export default function OurProjectPage() {
     setEditingProject(project);
     setTitle(project.title);
     setDescription(project.description);
-    setFile(null); // File is optional during edit
+    setFiles([]); // Files are optional during edit
     setIsModalOpen(true);
   };
 
@@ -60,7 +60,7 @@ export default function OurProjectPage() {
     setEditingProject(null);
     setTitle("");
     setDescription("");
-    setFile(null);
+    setFiles([]);
   };
 
   const fetchProjects = async () => {
@@ -74,19 +74,23 @@ export default function OurProjectPage() {
     setLoading(false);
   };
 
-  const handleFileUpload = async (file: File) => {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `projects/${fileName}`;
+  const handleFileUpload = async (files: File[]) => {
+    const urls: string[] = [];
+    for (const file of files) {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `projects/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("project_media")
-      .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage
+        .from("project_media") // Updated bucket name
+        .upload(filePath, file);
 
-    if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from("project_media").getPublicUrl(filePath);
-    return data.publicUrl;
+      const { data } = supabase.storage.from("project_media").getPublicUrl(filePath);
+      urls.push(data.publicUrl);
+    }
+    return urls;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,12 +99,13 @@ export default function OurProjectPage() {
 
     setUploading(true);
     try {
-      let media_url = editingProject?.media_url;
-      let media_type = editingProject?.media_type;
+      let media_url = editingProject?.media_url || "";
+      let media_type = editingProject?.media_type || "";
 
-      if (file) {
-        media_url = await handleFileUpload(file);
-        media_type = file.type.startsWith("video") ? "video" : "image";
+      if (files.length > 0) {
+        const urls = await handleFileUpload(files);
+        media_url = urls.join(","); // Store as comma-separated
+        media_type = files.map((file) => (file.type.startsWith("video") ? "video" : "image")).join(",");
       }
 
       if (editingProject) {
@@ -112,7 +117,7 @@ export default function OurProjectPage() {
         if (error) throw error;
       } else {
         // INSERT NEW
-        if (!file) throw new Error("Media file is required for new projects");
+        if (files.length === 0) throw new Error("At least one media file is required for new projects");
         const { error } = await supabase.from("our_projects").insert([
           { title, description, media_url, media_type },
         ]);
@@ -136,6 +141,10 @@ export default function OurProjectPage() {
       setDeleteConfirmId(null);
     }
   };
+
+  // Helper to get media arrays from comma-separated strings
+  const getMediaUrls = (media_url: string) => media_url ? media_url.split(",") : [];
+  const getMediaTypes = (media_type: string) => media_type ? media_type.split(",") : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-8 py-10">
@@ -213,16 +222,17 @@ export default function OurProjectPage() {
                   <input
                     type="file"
                     accept="image/*,video/*"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    multiple
+                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
                     className="hidden"
                     id="media-upload"
                   />
                   <label htmlFor="media-upload" className="cursor-pointer">
                     <UploadCloud className="mx-auto text-slate-400 mb-2" size={32} />
                     <p className="font-bold text-slate-600 text-sm">
-                      {file ? file.name : editingProject ? "Keep current or upload new" : "Click to upload media"}
+                      {files.length > 0 ? `${files.length} file(s) selected` : editingProject ? "Keep current or upload new" : "Click to upload media"}
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Images or Videos</p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Images or Videos (Multiple Allowed)</p>
                   </label>
                 </div>
 
@@ -254,44 +264,68 @@ export default function OurProjectPage() {
           </div>
         ) : (
           <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-8">
-            {projects.map((p) => (
-              <div key={p.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-300">
-                <div className="relative h-60 bg-slate-100">
-                  {p.media_type === "video" ? (
-                    <video src={p.media_url} className="h-full w-full object-cover" />
-                  ) : (
-                    <Image src={p.media_url} alt={p.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                  )}
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-700">
-                    {p.media_type}
-                  </div>
-                </div>
-
-                <div className="p-6 flex-1">
-                  <h3 className="font-bold text-xl mb-2 text-slate-800">{p.title}</h3>
-                  <p className="text-slate-500 text-sm line-clamp-3 italic leading-relaxed">
-                    {p.description || "No description provided."}
-                  </p>
-                </div>
-
-                <div className="px-6 pb-6 mt-auto flex gap-3">
-                  <button
-                    onClick={() => openEditModal(p)}
-                    className="flex-1 flex items-center justify-center gap-2 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition border border-slate-200"
-                  >
-                    <Edit3 size={16} /> Edit
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmId(p.id)}
-                    className="flex-1 flex items-center justify-center gap-2 text-rose-500 font-bold py-3 rounded-xl hover:bg-rose-50 transition border border-rose-100"
-                  >
-                    <Trash2 size={16} /> Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+            {projects.map((p) => {
+              const mediaUrls = getMediaUrls(p.media_url);
+              const mediaTypes = getMediaTypes(p.media_type);
+              return (
+                <ProjectCard key={p.id} project={p} mediaUrls={mediaUrls} mediaTypes={mediaTypes} onEdit={openEditModal} onDelete={setDeleteConfirmId} />
+              );
+            })}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Separate component for each project card with auto-scrolling media
+function ProjectCard({ project, mediaUrls, mediaTypes, onEdit, onDelete }: { project: Project; mediaUrls: string[]; mediaTypes: string[]; onEdit: (p: Project) => void; onDelete: (id: number) => void }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (mediaUrls.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % mediaUrls.length);
+    }, 2000); // Auto-scroll every 2 seconds
+    return () => clearInterval(interval);
+  }, [mediaUrls.length]);
+
+  const currentUrl = mediaUrls[currentIndex] || "";
+  const currentType = mediaTypes[currentIndex] || "image";
+
+  return (
+    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-300">
+      <div className="relative h-60 bg-slate-100">
+        {currentType === "video" ? (
+          <video src={currentUrl} className="h-full w-full object-cover" autoPlay muted loop />
+        ) : (
+          <Image src={currentUrl} alt={project.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+        )}
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-700">
+          {currentType} {mediaUrls.length > 1 && `(${currentIndex + 1}/${mediaUrls.length})`}
+        </div>
+      </div>
+
+      <div className="p-6 flex-1">
+        <h3 className="font-bold text-xl mb-2 text-slate-800">{project.title}</h3>
+        <p className="text-slate-500 text-sm line-clamp-3 italic leading-relaxed">
+          {project.description || "No description provided."}
+        </p>
+      </div>
+
+      <div className="px-6 pb-6 mt-auto flex gap-3">
+        <button
+          onClick={() => onEdit(project)}
+          className="flex-1 flex items-center justify-center gap-2 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition border border-slate-200"
+        >
+          <Edit3 size={16} /> Edit
+        </button>
+        <button
+          onClick={() => onDelete(project.id)}
+          className="flex-1 flex items-center justify-center gap-2 text-rose-500 font-bold py-3 rounded-xl hover:bg-rose-50 transition border border-rose-100"
+        >
+          <Trash2 size={16} /> Delete
+        </button>
       </div>
     </div>
   );
