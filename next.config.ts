@@ -1,10 +1,14 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'export',      // <--- THIS IS THE MISSING KEY
-  trailingSlash: true,
-  images: {
-    unoptimized: true,
-  },
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.instafitcore.app',
+  appName: 'InstaFitCore',
+  webDir: 'out',
+  server: {
+    // This loads your site INSIDE the app
+    url: 'https://www.instafitcore.com', 
+    allowNavigation: ['www.instafitcore.com']
+  }
 };
 
-module.exports = nextConfig;
+export default config;
