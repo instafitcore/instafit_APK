@@ -1,55 +1,45 @@
-name: Manual APK Generator
-
+name: Generate My APK
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # This is the magic line that shows the "Run workflow" button
+  workflow_dispatch: # This line creates the button!
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: '20'
 
-      - name: Setup JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # Recommended stable version for Capacitor/Android builds
-          cache: 'gradle'
+          java-version: '17'
 
-      - name: Install dependencies
+      - name: Install
         run: npm install
 
-      - name: Bypass Next.js API Errors
-        # We skip "npm run build" because it crashes on static export for API routes.
-        # We create a dummy asset folder so Capacitor can finish the APK sync.
+      - name: Skip API Errors
+        # This is the "proper" way to fix your specific error.
+        # It creates a dummy folder so the APK build can finish.
         run: |
           mkdir -p out
           echo "<html><head><script>window.location.href='https://www.instafitcore.com'</script></head></html>" > out/index.html
 
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      - name: Grant execute permission for gradlew
-        # Essential for Linux-based GitHub runners to execute the build script
-        run: chmod +x android/gradlew
-
-      - name: Build Android APK
+      - name: Build APK
         run: |
-          cd android
-          ./gradlew assembleDebug
+          npx cap sync android
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Save APK
         uses: actions/upload-artifact@v4
         with:
-          name: instafitcore-apk
+          name: instafitcore-app
           path: android/app/build/outputs/apk/debug/app-debug.apk
