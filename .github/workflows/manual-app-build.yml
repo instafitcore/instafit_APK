@@ -1,5 +1,7 @@
 name: FINAL APK BUILDER
 on:
+  push:
+    branches: [ "main" ]
   workflow_dispatch: # This makes the button appear
 
 jobs:
@@ -24,12 +26,12 @@ jobs:
         run: npm install
 
       - name: Create Web Assets
-        # This bypasses the Next.js errors by creating a dummy index
         run: |
           mkdir -p out
           echo "<html><head><script>window.location.href='https://www.instafitcore.com'</script></head></html>" > out/index.html
 
       - name: Build APK
+        # We must build the file BEFORE we try to upload it
         run: |
           npx cap sync android
           chmod +x android/gradlew
