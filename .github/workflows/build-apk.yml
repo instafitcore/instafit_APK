@@ -1,47 +1,59 @@
-# Build for instafitcore
-name: Build instafitcore APK
+name: Build Android APK
 
 on:
-  workflow_dispatch: # Allows you to run it manually
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # allows you to run it manually from Actions tab
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Source
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Setup Java
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Create Dummy Assets
-        # This tricks Capacitor so we don't need a real Next.js build
-        run: |
-          mkdir -p out
-          echo "<html><head><script>window.location.href='https://www.instafitcore.com'</script></head></html>" > out/index.html
+      - name: Build Next.js app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} 
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
 
-      - name: Capacitor Sync
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build APK (Gradle)
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: instafitcore-app
+          name: insta-fit-core-app
           path: android/app/build/outputs/apk/debug/app-debug.apk
