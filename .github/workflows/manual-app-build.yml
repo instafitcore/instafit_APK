@@ -2,7 +2,7 @@ name: FINAL APK BUILDER
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # This is the button you found!
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,13 +14,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # UPDATED: Changed from 20 to 22 to fix the error
+          node-version: '22' # Correct Node version
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21' # UPDATED: Changed from 17 to 21 to match your project requirements
 
       - name: Install dependencies
         run: npm install
