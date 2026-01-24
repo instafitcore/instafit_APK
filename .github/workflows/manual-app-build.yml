@@ -1,17 +1,17 @@
-name: Build Android APK
+name: Manual APK Generator
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # This enables the manual button
+  workflow_dispatch: # This is what creates the button
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Environment
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -20,25 +20,25 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # Java 17 is standard for Capacitor builds
+          java-version: '17'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Create Assets Bypass
-        # This prevents the API route errors by skipping the real Next.js build
+      - name: Bypass API Errors
+        # We create a fake 'out' folder so Capacitor is happy.
+        # The APK will load your website from the Live URL in your config.
         run: |
           mkdir -p out
           echo "<html><head><script>window.location.href='https://www.instafitcore.com'</script></head></html>" > out/index.html
 
-      - name: Sync Capacitor
+      - name: Capacitor Sync
         run: npx cap sync android
 
-      - name: Grant Execute Permission
-        # Critical fix for permission errors on GitHub runners
+      - name: Fix Permissions
         run: chmod +x android/gradlew
 
-      - name: Build Android APK
+      - name: Build Debug APK
         run: |
           cd android
           ./gradlew assembleDebug
@@ -46,5 +46,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: instafitcore-app
+          name: instafitcore-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
