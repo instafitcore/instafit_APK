@@ -1,44 +1,49 @@
 name: Manual APK Generator
+
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # This is what creates the button
+  workflow_dispatch: # This is the magic line that shows the "Run workflow" button
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Setup Java
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '17' # Recommended stable version for Capacitor/Android builds
+          cache: 'gradle'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Bypass API Errors
-        # We create a fake 'out' folder so Capacitor is happy.
-        # The APK will load your website from the Live URL in your config.
+      - name: Bypass Next.js API Errors
+        # We skip "npm run build" because it crashes on static export for API routes.
+        # We create a dummy asset folder so Capacitor can finish the APK sync.
         run: |
           mkdir -p out
           echo "<html><head><script>window.location.href='https://www.instafitcore.com'</script></head></html>" > out/index.html
 
-      - name: Capacitor Sync
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Fix Permissions
+      - name: Grant execute permission for gradlew
+        # Essential for Linux-based GitHub runners to execute the build script
         run: chmod +x android/gradlew
 
-      - name: Build Debug APK
+      - name: Build Android APK
         run: |
           cd android
           ./gradlew assembleDebug
