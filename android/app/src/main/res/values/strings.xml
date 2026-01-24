@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">instafitcore</string>
-    <string name="title_activity_main">instafitcore</string>
-    <string name="package_name">com.example.app</string>
-    <string name="custom_url_scheme">com.example.app</string>
+    <string name="app_name">InstaFitCore</string>
+    <string name="title_activity_main">InstaFitCore</string>
+    <string name="package_name">com.instafitcore.app</string>
+    <string name="custom_url_scheme">com.instafitcore.app</string>
 </resources>
