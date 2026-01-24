@@ -5,9 +5,9 @@ const config: CapacitorConfig = {
   appName: 'InstaFitCore',
   webDir: 'out',
   server: {
-    // This loads your site INSIDE the app
-    url: 'https://www.instafitcore.com', 
-    allowNavigation: ['www.instafitcore.com']
+    url: 'https://www.instafitcore.com',
+    allowNavigation: ['www.instafitcore.com', 'instafitcore.com'],
+    androidScheme: 'https' // This fixes the black screen for many users
   }
 };
 
