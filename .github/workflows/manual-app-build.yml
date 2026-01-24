@@ -1,8 +1,6 @@
-name: Generate My APK
+name: FINAL APK BUILDER
 on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch: # This line creates the button!
+  workflow_dispatch: # This makes the button appear
 
 jobs:
   build:
@@ -11,7 +9,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Environment
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -22,12 +20,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install
+      - name: Install dependencies
         run: npm install
 
-      - name: Skip API Errors
-        # This is the "proper" way to fix your specific error.
-        # It creates a dummy folder so the APK build can finish.
+      - name: Create Web Assets
+        # This bypasses the Next.js errors by creating a dummy index
         run: |
           mkdir -p out
           echo "<html><head><script>window.location.href='https://www.instafitcore.com'</script></head></html>" > out/index.html
@@ -38,7 +35,7 @@ jobs:
           chmod +x android/gradlew
           cd android && ./gradlew assembleDebug
 
-      - name: Save APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: instafitcore-app
