@@ -31,13 +31,13 @@ jobs:
           # This is just a blank placeholder so the app builds. 
           # The app will actually load your Live URL from the config above.
           echo "<html><body style='background:#000;'></body></html>" > out/index.html
-          
+
       - name: Build APK
         run: |
-          npx cap sync android
-          chmod +x android/gradlew
-          cd android && ./gradlew assembleDebug
-
+          npx cap sync android  # This moves your config changes into the Java code
+          cd android
+          ./gradlew assembleDebug
+          
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
