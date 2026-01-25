@@ -1,14 +1,11 @@
-import { CapacitorConfig } from '@capacitor/cli';
+import type { NextConfig } from 'next';
 
-const config: CapacitorConfig = {
-  appId: 'com.instafitcore.app',
-  appName: 'InstaFitCore',
-  webDir: 'out',
-  server: {
-    url: 'https://www.instafitcore.com',
-    allowNavigation: ['www.instafitcore.com', 'instafitcore.com'],
-    androidScheme: 'https' // This fixes the black screen for many users
-  }
+const nextConfig: NextConfig = {
+  output: 'export',  // Required for Capacitor to find the 'out' folder
+  images: {
+    unoptimized: true, // Required for static exports
+  },
+  // Add other Next.js specific options here
 };
 
-export default config;
+export default nextConfig;
