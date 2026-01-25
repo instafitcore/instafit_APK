@@ -16,13 +16,13 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 3000, // Show for 3 seconds
-      launchAutoHide: true,
+      launchShowDuration: 0,        // Disable the timer
+      launchAutoHide: false,       // IMPORTANT: Don't hide until we say so
       backgroundColor: "#ffffff",
       androidScaleType: "CENTER_CROP",
       showSpinner: true,
       androidSpinnerStyle: "large",
-      spinnerColor: "#4CAF50" // Matching your green logo
+      spinnerColor: "#4CAF50"
     }
   }
 };
