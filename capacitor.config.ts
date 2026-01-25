@@ -8,11 +8,22 @@ const config: CapacitorConfig = {
     url: 'https://www.instafitcore.com',
     allowNavigation: ['www.instafitcore.com', 'instafitcore.com'],
     androidScheme: 'https',
-    hostname: 'www.instafitcore.com' // Force the internal browser to match the site
+    hostname: 'www.instafitcore.com'
   },
-  // This shows a white screen instead of black while the site loads
   android: {
-    backgroundColor: "#ffffff"
+    backgroundColor: "#ffffff",
+    allowMixedContent: true
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 3000, // Show for 3 seconds
+      launchAutoHide: true,
+      backgroundColor: "#ffffff",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: true,
+      androidSpinnerStyle: "large",
+      spinnerColor: "#4CAF50" // Matching your green logo
+    }
   }
 };
 
