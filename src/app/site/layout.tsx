@@ -10,12 +10,15 @@ export default function SiteLayout({
 }) {
   return (
     <ToastProvider>
-      <div className="bg-gray-50 min-h-screen">
-        <Navbar />
-        <main className="px-6 py-10">{children}</main>
-        <FloatingWhatsApp />
-        <Footer />
-      </div>
+<div className="bg-gray-50 min-h-screen w-full">
+  <div className="w-full">
+    <Navbar />
+    <main className="px-6 py-10">{children}</main>
+    <FloatingWhatsApp />
+    <Footer />
+  </div>
+</div>
+
     </ToastProvider>
   );
 }

@@ -14,11 +14,11 @@ const config: CapacitorConfig = {
     backgroundColor: "#ffffff",
     allowMixedContent: true
   },
- plugins: {
+  plugins: {
     SplashScreen: {
       launchShowDuration: 3000,    // Force hide after 3 seconds no matter what
       launchAutoHide: true,        // Set this back to true as a backup
-      backgroundColor: "#ffffff",
+      backgroundColor: "#4CAF50",
       androidScaleType: "CENTER_CROP",
       showSpinner: true,           // This shows the user it is actually loading
       androidSpinnerStyle: "large",

@@ -58,45 +58,54 @@ export default function AuthModal({
   };
 
 const handleSendOtp = async (e: React.FormEvent) => {
-  e.preventDefault();
+  if (e) e.preventDefault();
   if (countdown > 0) return;
   setLoading(true);
 
   const normalizedEmail = email.trim().toLowerCase();
 
   try {
-    // 1. CALL THE DATABASE FUNCTION to check auth.users directly
-    const { data: userExists, error: rpcError } = await supabase.rpc('check_user_exists', {
+    // 1. Ask the DB: What is the actual status of this email?
+    const { data: status, error: rpcError } = await supabase.rpc('check_user_status', {
       email_to_check: normalizedEmail,
     });
 
     if (rpcError) throw rpcError;
 
-    // 2. LOGIC: Prevent registration if they already exist
-    if (mode === "register" && userExists) {
-      setLoading(false);
-      return toast({ 
-        title: "Account Exists", 
-        description: "This email is already registered. Please login instead.", 
-        variant: "destructive" 
-      });
+    // --- REGISTRATION LOGIC ---
+    if (mode === "register") {
+      // ONLY block them if they are 100% verified already
+      if (status === 'confirmed') {
+        setLoading(false);
+        return toast({ 
+          title: "Account Exists", 
+          description: "This email is already verified. Please login instead.", 
+          variant: "destructive" 
+        });
+      }
+      // NOTE: If status is 'unconfirmed', we DO NOT block. 
+      // We let it pass so Supabase resends the signup OTP.
     }
 
-    // 3. LOGIC: Prevent login if account doesn't exist
-    if (mode === "login" && !userExists) {
-      setLoading(false);
-      return toast({ 
-        title: "No Account Found", 
-        description: "No account found with this email. Please register first.", 
-        variant: "destructive" 
-      });
+    // --- LOGIN LOGIC ---
+    if (mode === "login") {
+      // Block if they don't exist OR if they never finished registering
+      if (status === 'not_found' || status === 'unconfirmed') {
+        setLoading(false);
+        const msg = status === 'not_found' 
+          ? "No account found. Please register first." 
+          : "Account not verified. Please finish registration in the Sign Up tab.";
+        
+        return toast({ title: "Cannot Login", description: msg, variant: "destructive" });
+      }
     }
 
-    // 4. Send the OTP
+    // 2. Send the OTP
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        shouldCreateUser: mode === "register", // Strict creation control
+        // Only "Create" the user if they are totally new to the DB
+        shouldCreateUser: mode === "register" && status === 'not_found',
         data: mode === "register" ? { full_name: name } : undefined,
       },
     });
@@ -114,30 +123,36 @@ const handleSendOtp = async (e: React.FormEvent) => {
   }
 };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+const handleVerifyOtp = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: email.trim().toLowerCase(),
-        token,
-        type: "email",
-      });
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token,
+      type: "email",
+    });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      toast({ title: "Success!", description: "You are now logged in." });
+    if (data.session) {
+      // SUCCESS: The user is now 'confirmed' in auth.users automatically
+      toast({ title: "Success!", description: "Account verified." });
       onAuthSuccess?.();
-      router.push("/site");
-      closeModal();
-      router.refresh();
-    } catch (err: any) {
-      toast({ title: "Invalid Code", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+      
+      setTimeout(() => {
+        router.push("/site");
+        closeModal();
+        router.refresh();
+      }, 500); 
     }
-  };
+  } catch (err: any) {
+    toast({ title: "Invalid Code", description: err.message, variant: "destructive" });
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!showAuth) return null;
 

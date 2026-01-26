@@ -424,14 +424,31 @@ export default function FullNavbar() {
       {/* CATEGORY BAR (Home only) */}
       {pathname?.replace(/\/$/, "") === "/site" && (
         <div
-          className={`sticky top-[72px] z-40 bg-white border-b border-gray-100 shadow-sm transition-all duration-300 overflow-visible ${categoryShrunk ? "py-6" : "py-4"
-            }`}
+          className={`
+    sticky
+    top-[calc(env(safe-area-inset-top)+72px)]
+    z-40
+    bg-white
+    border-b border-gray-100
+    shadow-sm
+    transition-all duration-300
+    ${categoryShrunk ? "py-6" : "py-4"}
+  `}
         >
 
+
           <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <div className="flex justify-center gap-6 md:gap-16 lg:gap-24 transition-all duration-300
-  overflow-x-auto md:overflow-x-visible
-  scrollbar-hide -mx-4 px-4">
+            <div
+              className="
+    flex gap-6 md:gap-16 lg:gap-24
+    overflow-x-auto md:overflow-x-visible
+    scrollbar-hide
+    px-6
+    snap-x snap-mandatory
+    justify-start md:justify-center
+  "
+            >
+
 
               {staticCategories.map((item) => (
                 <div key={item.id} className="relative group flex flex-col items-center">
