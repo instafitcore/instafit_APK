@@ -4,6 +4,12 @@
 body {
   background-color: white; /* light grey/blue, very clean */
 }
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-top-offset {
+  top: env(safe-area-inset-top);
+}
 
 .categories-wrapper {
   background-color: white;
