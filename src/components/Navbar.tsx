@@ -239,8 +239,8 @@ export default function FullNavbar() {
 
   return (
     <>
-      <header className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 pt-[calc(env(safe-area-inset-top)+10px)] ${isScrolled ? "shadow-lg" : ""}`}>
-        <div className="flex max-w-7xl mx-auto px-4 py-4 md:py-5 items-center gap-4 md:gap-6">
+      <header className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 ${isScrolled ? "shadow-lg" : ""}`}>
+        <div className="flex max-w-7xl mx-auto px-4 py-4 md:py-5 items-center gap-4 sm:gap-4 md:gap-6">
           <Link href="/site" className="flex items-center gap-1 shrink-0">
             {/* Logo Icon */}
             <div className="w-12 h-12 md:w-14 md:h-14 relative flex-shrink-0">
@@ -424,44 +424,37 @@ export default function FullNavbar() {
       {/* CATEGORY BAR (Home only) */}
       {pathname?.replace(/\/$/, "") === "/site" && (
         <div
-          className={`
-    sticky
-top-[calc(env(safe-area-inset-top)+72px)]
-    z-40
-    bg-white
-    border-b border-gray-100
-    shadow-sm
-    transition-all duration-300
-    ${categoryShrunk ? "py-6" : "py-4"}
-  `}
+          className={`sticky top-[72px] z-40 bg-white border-b border-gray-100 shadow-sm transition-all duration-300 overflow-visible ${
+            categoryShrunk ? "py-4 md:py-6" : "py-3 md:py-4"
+          }`}
         >
-
-
-          <div className="max-w-7xl mx-auto pl-2 pr-4 md:pl-4">
+          <div className="max-w-7xl mx-auto">
             <div
-              className="
-    flex flex-wrap
-    gap-4 md:gap-8 lg:gap-12
-    justify-center
-    items-start
-  "
+              className="flex items-center transition-all duration-300
+                overflow-x-auto md:overflow-x-visible
+                scrollbar-hide 
+                /* Mobile: start alignment with heavy left padding to 'push' content right */
+                /* Desktop: centered alignment */
+                justify-start md:justify-center 
+                gap-8 md:gap-16 lg:gap-24
+                /* This padding-left is what 'moves' it toward the right on mobile */
+                pl-10 pr-6 md:px-6"
             >
-
-
-
               {staticCategories.map((item) => (
-                <div key={item.id} className="relative group flex flex-col items-center">
-                  {/* Category Link */}
+                <div
+                  key={item.id}
+                  className="relative group flex flex-col items-center shrink-0"
+                >
                   <Link
                     href={item.link}
                     className="flex flex-col items-center transition-all duration-300"
                   >
-                    {/* Image Container */}
                     <div
-                      className={`rounded-full overflow-x-auto border border-gray-100 flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm
-                  ${categoryShrunk
-                          ? "w-0 h-0 opacity-0 mb-1 scale-0"
-                          : "w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mb-2 group-hover:scale-105 group-hover:border-[#8ed26b]"
+                      className={`rounded-full overflow-hidden border border-gray-100 flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm
+                        ${
+                          categoryShrunk
+                            ? "w-0 h-0 opacity-0 mb-0 scale-0"
+                            : "w-14 h-14 md:w-20 md:h-20 lg:w-24 lg:h-24 mb-2 group-hover:scale-105 group-hover:border-[#8ed26b]"
                         }`}
                     >
                       <Image
@@ -473,62 +466,47 @@ top-[calc(env(safe-area-inset-top)+72px)]
                       />
                     </div>
 
-                    <div className="h-[42px] flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center justify-center text-center">
                       <p
-                        className={`text-center text-[11px] md:text-sm font-semibold text-gray-800
-    whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] md:max-w-[140px]
-    transition-all duration-300 group-hover:text-[#8ed26b]
-    ${categoryShrunk ? "mt-0" : "mt-1"}`}
+                        className={`text-[11px] md:text-sm font-semibold text-gray-800
+                          whitespace-nowrap transition-all duration-300 group-hover:text-[#8ed26b]
+                          ${categoryShrunk ? "mt-0" : "mt-1"}`}
                       >
                         {item.name}
                       </p>
-
-                      <p
-                        className="text-[10px] md:text-xs text-gray-500 font-medium
-    whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] md:max-w-[140px]"
-                      >
+                      <p className={`text-[10px] md:text-xs text-gray-500 font-medium whitespace-nowrap ${categoryShrunk ? 'hidden' : 'block'}`}>
                         {item.subtitle}
                       </p>
                     </div>
-
                   </Link>
-
-
-                  {/* Hover Dropdown for Sub Services */}
+                  
+                  {/* Hover Dropdown */}
                   {item.subServices && item.subServices.length > 0 && (
                     <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto scale-95 group-hover:scale-100 transform transition-all duration-300 z-50 hidden md:block">
-                      {/* The white box container */}
                       <div className="bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
                         <div className="px-4 py-3">
                           <ul className="text-gray-700 text-sm space-y-2">
                             {item.subServices.map((sub, idx) => {
-                              let href = item.link; // fallback
-
+                              let href = item.link;
                               if (item.id === "furniture-service") {
                                 if (sub === "Furniture Installation") href = "/site/services?typeId=1";
                                 if (sub === "Furniture Dismantling") href = "/site/services?typeId=2";
                                 if (sub === "Furniture Repair") href = "/site/services?typeId=3";
                               }
-
                               return (
                                 <li key={idx}>
-                                  <Link
-                                    href={href}
-                                    className="hover:text-[#8ed26b] transition-colors flex items-start gap-2"
-                                  >
+                                  <Link href={href} className="hover:text-[#8ed26b] transition-colors flex items-start gap-2">
                                     <span className="text-[#8ed26b]">•</span>
                                     <span>{sub}</span>
                                   </Link>
                                 </li>
                               );
                             })}
-
                           </ul>
                         </div>
                       </div>
                     </div>
                   )}
-
                 </div>
               ))}
             </div>
