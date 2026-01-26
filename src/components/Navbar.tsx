@@ -440,17 +440,13 @@ top-[calc(env(safe-area-inset-top)+72px)]
           <div className="max-w-7xl mx-auto pl-2 pr-4 md:pl-4">
             <div
               className="
-          flex 
-          /* Gap between items */
-          gap-4 md:gap-12 lg:gap-16
-          overflow-x-auto 
-          scrollbar-hide 
-          /* Left Align Fix: Changed md:justify-center to justify-start */
-          justify-start 
-          items-center
-          snap-x snap-mandatory
-        "
+    flex flex-wrap
+    gap-4 md:gap-8 lg:gap-12
+    justify-center
+    items-start
+  "
             >
+
 
 
               {staticCategories.map((item) => (
@@ -462,7 +458,7 @@ top-[calc(env(safe-area-inset-top)+72px)]
                   >
                     {/* Image Container */}
                     <div
-                      className={`rounded-full overflow-hidden border border-gray-100 flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm
+                      className={`rounded-full overflow-x-auto border border-gray-100 flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm
                   ${categoryShrunk
                           ? "w-0 h-0 opacity-0 mb-1 scale-0"
                           : "w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mb-2 group-hover:scale-105 group-hover:border-[#8ed26b]"
