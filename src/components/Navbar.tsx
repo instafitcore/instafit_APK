@@ -438,15 +438,16 @@ export default function FullNavbar() {
 
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div
-            className="
+  className="
     flex gap-6 md:gap-16 lg:gap-24
     overflow-x-auto md:overflow-x-visible
     scrollbar-hide
-    px-6
+    /* Change px-6 to pl-2 (or pl-3) to move it left */
+    pl-2 pr-6 
     snap-x snap-mandatory
     justify-start md:justify-center
   "
-          >
+>
 
 
             {staticCategories.map((item) => (
