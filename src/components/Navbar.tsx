@@ -239,38 +239,37 @@ export default function FullNavbar() {
 
   return (
     <>
-      <header className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top)] ${isScrolled ? "shadow-lg" : ""}`}>        <div className="flex max-w-7xl mx-auto px-4 py-4 md:py-5 items-center gap-4 md:gap-6">
-        <Link href="/site" className="flex items-center gap-1 shrink-0">
-          {/* Logo Icon */}
-          <div className="w-12 h-12 md:w-14 md:h-14 relative flex-shrink-0">
-            <Image
-              src="/logoicon.png"
-              alt="Instafitcore Logo"
-              width={64}
-              height={64}
-              priority
-              className="w-full h-full object-contain"
-            />
-          </div>
+      <header className={`bg-white border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top)] ${isScrolled ? "shadow-lg" : ""}`}>        <Link href="/site" className="flex items-center gap-1 shrink-0">
+        {/* Logo Icon */}
+        <div className="w-12 h-12 md:w-14 md:h-14 relative flex-shrink-0">
+          <Image
+            src="/logoicon.png"
+            alt="Instafitcore Logo"
+            width={64}
+            height={64}
+            priority
+            className="w-full h-full object-contain"
+          />
+        </div>
 
-          {/* Brand Text + Location */}
-          <div className="leading-tight hidden sm:block text-right">
-            {/* Brand Name */}
-            <h1 className="text-lg md:text-xl font-extrabold tracking-wide text-[#90ca2e]">
-              INSTAFITCORE
-            </h1>
+        {/* Brand Text + Location */}
+        <div className="leading-tight hidden sm:block text-right">
+          {/* Brand Name */}
+          <h1 className="text-lg md:text-xl font-extrabold tracking-wide text-[#90ca2e]">
+            INSTAFITCORE
+          </h1>
 
-            {/* Location / Tagline */}
-            <div className="flex flex-col gap-0.5 text-[11px] md:text-xs font-medium text-[#8ed26b]/80 items-end">
-              <div className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" />
-                <p className="text-[11px] md:text-xs text-gray-500 font-bold tracking-wide">
-                  One Stop Solutions
-                </p>
-              </div>
+          {/* Location / Tagline */}
+          <div className="flex flex-col gap-0.5 text-[11px] md:text-xs font-medium text-[#8ed26b]/80 items-end">
+            <div className="flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5" />
+              <p className="text-[11px] md:text-xs text-gray-500 font-bold tracking-wide">
+                One Stop Solutions
+              </p>
             </div>
           </div>
-        </Link>
+        </div>
+      </Link>
 
         {/* SEARCH BOX - Made bigger on mobile */}
         <div className="flex-1 max-w-md md:max-w-lg mx-2 md:mx-4 relative" ref={searchRef}>
@@ -395,50 +394,51 @@ export default function FullNavbar() {
         </div>
       </div>
 
-        {/* MOBILE OVERLAY */}
-        <div className={`fixed inset-0 z-[100] bg-white transition-transform ${mobileOpen ? "translate-x-0" : "translate-x-full"} lg:hidden`}>
-          <div className="p-4 flex justify-between items-center border-b">
-            <span className="font-bold text-[#8ed26b]">Menu</span>
-            <X className="w-6 h-6 cursor-pointer" onClick={() => setMobileOpen(false)} />
-          </div>
-          <div className="p-6 flex flex-col gap-6">
-            <Link href="/site" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Home</Link>
-            <Link href="/site/services" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Services</Link>
-            <Link href="/site/about" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>About Us</Link>
-            <Link href="/site/contact" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Contact Us</Link>
-
-            {user && (
-              <div className="mt-8 flex flex-col gap-4 border-t pt-6">
-                <Link href="/site/profile" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Profile</Link>
-                <Link href="/site/order-tracking" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Order Tracking</Link>
-                <Link href="/site/wishlist" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Wishlist</Link>
-                <Link href="/site/cart" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Cart</Link>
-                <button onClick={handleLogout} className="text-left text-red-600 text-base font-medium">Logout</button>
-              </div>
-            )}
-          </div>
+      {/* MOBILE OVERLAY */}
+      <div className={`fixed inset-0 z-[100] bg-white transition-transform ${mobileOpen ? "translate-x-0" : "translate-x-full"} lg:hidden`}>
+        <div className="p-4 flex justify-between items-center border-b">
+          <span className="font-bold text-[#8ed26b]">Menu</span>
+          <X className="w-6 h-6 cursor-pointer" onClick={() => setMobileOpen(false)} />
         </div>
-      </header>
+        <div className="p-6 flex flex-col gap-6">
+          <Link href="/site" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Home</Link>
+          <Link href="/site/services" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Services</Link>
+          <Link href="/site/about" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>About Us</Link>
+          <Link href="/site/contact" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>Contact Us</Link>
 
-      {/* CATEGORY BAR (Home only) */}
-      {pathname?.replace(/\/$/, "") === "/site" && (
-        <div
-          className={`
+          {user && (
+            <div className="mt-8 flex flex-col gap-4 border-t pt-6">
+              <Link href="/site/profile" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Profile</Link>
+              <Link href="/site/order-tracking" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Order Tracking</Link>
+              <Link href="/site/wishlist" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Wishlist</Link>
+              <Link href="/site/cart" className="text-gray-800 text-base font-medium" onClick={() => setMobileOpen(false)}>Cart</Link>
+              <button onClick={handleLogout} className="text-left text-red-600 text-base font-medium">Logout</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header >
+
+      {/* CATEGORY BAR (Home only) */ }
+  {
+    pathname?.replace(/\/$/, "") === "/site" && (
+      <div
+        className={`
     sticky
-    top-[calc(env(safe-area-inset-top)+72px)]
+    top-[calc(env(safe-area-inset-top)+64px)] 
     z-40
     bg-white
     border-b border-gray-100
     shadow-sm
     transition-all duration-300
-    ${categoryShrunk ? "py-6" : "py-4"}
+    ${categoryShrunk ? "py-2" : "py-4"}
   `}
-        >
+      >
 
 
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <div
-              className="
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div
+            className="
     flex gap-6 md:gap-16 lg:gap-24
     overflow-x-auto md:overflow-x-visible
     scrollbar-hide
@@ -446,96 +446,97 @@ export default function FullNavbar() {
     snap-x snap-mandatory
     justify-start md:justify-center
   "
-            >
+          >
 
 
-              {staticCategories.map((item) => (
-                <div key={item.id} className="relative group flex flex-col items-center">
-                  {/* Category Link */}
-                  <Link
-                    href={item.link}
-                    className="flex flex-col items-center transition-all duration-300"
-                  >
-                    {/* Image Container */}
-                    <div
-                      className={`rounded-full overflow-hidden border border-gray-100 flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm
+            {staticCategories.map((item) => (
+              <div key={item.id} className="relative group flex flex-col items-center">
+                {/* Category Link */}
+                <Link
+                  href={item.link}
+                  className="flex flex-col items-center transition-all duration-300"
+                >
+                  {/* Image Container */}
+                  <div
+                    className={`rounded-full overflow-hidden border border-gray-100 flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm
                   ${categoryShrunk
-                          ? "w-0 h-0 opacity-0 mb-1 scale-0"
-                          : "w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mb-2 group-hover:scale-105 group-hover:border-[#8ed26b]"
-                        }`}
-                    >
-                      <Image
-                        src={item.image_url}
-                        alt={item.name}
-                        width={80}
-                        height={80}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                        ? "w-0 h-0 opacity-0 mb-1 scale-0"
+                        : "w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mb-2 group-hover:scale-105 group-hover:border-[#8ed26b]"
+                      }`}
+                  >
+                    <Image
+                      src={item.image_url}
+                      alt={item.name}
+                      width={80}
+                      height={80}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
-                    <div className="h-[42px] flex flex-col items-center justify-center">
-                      <p
-                        className={`text-center text-[11px] md:text-sm font-semibold text-gray-800
+                  <div className="h-[42px] flex flex-col items-center justify-center">
+                    <p
+                      className={`text-center text-[11px] md:text-sm font-semibold text-gray-800
     whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] md:max-w-[140px]
     transition-all duration-300 group-hover:text-[#8ed26b]
     ${categoryShrunk ? "mt-0" : "mt-1"}`}
-                      >
-                        {item.name}
-                      </p>
+                    >
+                      {item.name}
+                    </p>
 
-                      <p
-                        className="text-[10px] md:text-xs text-gray-500 font-medium
+                    <p
+                      className="text-[10px] md:text-xs text-gray-500 font-medium
     whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] md:max-w-[140px]"
-                      >
-                        {item.subtitle}
-                      </p>
-                    </div>
+                    >
+                      {item.subtitle}
+                    </p>
+                  </div>
 
-                  </Link>
+                </Link>
 
 
-                  {/* Hover Dropdown for Sub Services */}
-                  {item.subServices && item.subServices.length > 0 && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto scale-95 group-hover:scale-100 transform transition-all duration-300 z-50 hidden md:block">
-                      {/* The white box container */}
-                      <div className="bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
-                        <div className="px-4 py-3">
-                          <ul className="text-gray-700 text-sm space-y-2">
-                            {item.subServices.map((sub, idx) => {
-                              let href = item.link; // fallback
+                {/* Hover Dropdown for Sub Services */}
+                {item.subServices && item.subServices.length > 0 && (
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto scale-95 group-hover:scale-100 transform transition-all duration-300 z-50 hidden md:block">
+                    {/* The white box container */}
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                      <div className="px-4 py-3">
+                        <ul className="text-gray-700 text-sm space-y-2">
+                          {item.subServices.map((sub, idx) => {
+                            let href = item.link; // fallback
 
-                              if (item.id === "furniture-service") {
-                                if (sub === "Furniture Installation") href = "/site/services?typeId=1";
-                                if (sub === "Furniture Dismantling") href = "/site/services?typeId=2";
-                                if (sub === "Furniture Repair") href = "/site/services?typeId=3";
-                              }
+                            if (item.id === "furniture-service") {
+                              if (sub === "Furniture Installation") href = "/site/services?typeId=1";
+                              if (sub === "Furniture Dismantling") href = "/site/services?typeId=2";
+                              if (sub === "Furniture Repair") href = "/site/services?typeId=3";
+                            }
 
-                              return (
-                                <li key={idx}>
-                                  <Link
-                                    href={href}
-                                    className="hover:text-[#8ed26b] transition-colors flex items-start gap-2"
-                                  >
-                                    <span className="text-[#8ed26b]">•</span>
-                                    <span>{sub}</span>
-                                  </Link>
-                                </li>
-                              );
-                            })}
+                            return (
+                              <li key={idx}>
+                                <Link
+                                  href={href}
+                                  className="hover:text-[#8ed26b] transition-colors flex items-start gap-2"
+                                >
+                                  <span className="text-[#8ed26b]">•</span>
+                                  <span>{sub}</span>
+                                </Link>
+                              </li>
+                            );
+                          })}
 
-                          </ul>
-                        </div>
+                        </ul>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
-      )}
-      <AuthModal showAuth={showAuth} setShowAuth={setShowAuth} initialMode={mode} />
+      </div>
+    )
+  }
+  <AuthModal showAuth={showAuth} setShowAuth={setShowAuth} initialMode={mode} />
     </>
   );
 }
