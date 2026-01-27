@@ -1,11 +1,9 @@
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
-  output: 'export',  // Required for Capacitor to find the 'out' folder
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  trailingSlash: true,
   images: {
-    unoptimized: true, // Required for static exports
+    unoptimized: true,
   },
-  // Add other Next.js specific options here
 };
 
-export default nextConfig;
+module.exports = nextConfig;
