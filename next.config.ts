@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',      // This creates the 'out' folder
-  trailingSlash: true,   // This helps the app find pages on Android
+  output: 'export',
   images: {
-    unoptimized: true,   // Mobile apps can't use Next.js's image resizer
+    unoptimized: true, // If this is missing, the app will crash/go black!
   },
 };
-
 export default nextConfig;
