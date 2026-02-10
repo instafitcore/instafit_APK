@@ -101,14 +101,13 @@ const handleSendOtp = async (e: React.FormEvent) => {
     }
 
     // 2. Send the OTP
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: {
-        // Only "Create" the user if they are totally new to the DB
-        shouldCreateUser: mode === "register" && status === 'not_found',
-        data: mode === "register" ? { full_name: name } : undefined,
-      },
-    });
+   const { error: otpError } = await supabase.auth.signInWithOtp({
+  email: normalizedEmail,
+  options: {
+    data: mode === "register" ? { full_name: name } : undefined,
+  },
+});
+
 
     if (otpError) throw otpError;
 

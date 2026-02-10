@@ -71,13 +71,7 @@ type Booking = {
   address: string | null;
   employee_name: string | null;
   employee_phone: string | null;
-};
-
-type ReviewSubmitData = {
-  rating: number;
-  employeeName: string;
-  serviceDetails: string;
-  imageFiles: File[];
+  payment_id: string | null; // Added for payment status
 };
 
 // --- Status Helper (omitted for brevity) ---
@@ -99,6 +93,15 @@ const getStatusDetails = (status: string) => {
   }
 };
 
+// --- Payment Status Helper ---
+const getPaymentStatusDetails = (paymentId: string | null) => {
+  if (paymentId) {
+    return { text: "text-green-600", bg: "bg-green-100", label: "Paid" };
+  } else {
+    return { text: "text-red-600", bg: "bg-red-100", label: "On Site Payment" };
+  }
+};
+
 // ============================
 // Review Modal Component
 // ============================
@@ -106,6 +109,13 @@ type ReviewModalProps = {
   order: Booking;
   onClose: () => void;
   onSubmit: (data: ReviewSubmitData) => Promise<boolean>;
+};
+
+type ReviewSubmitData = {
+  rating: number;
+  employeeName: string;
+  serviceDetails: string;
+  imageFiles: File[];
 };
 
 // ... existing code ...
@@ -331,39 +341,38 @@ export default function MyOrdersPage() {
     setLoading(false);
   };
 
-  useEffect(() => { /* ... existing subscription setup ... */
-    const setup = async () => {
-      await fetchOrders();
-      const { data } = await supabase.auth.getUser();
-      if (!data?.user) return;
-      const user = data.user;
+useEffect(() => {
+  const setup = async () => {
+    await fetchOrders();
+    const { data } = await supabase.auth.getUser();
+    if (!data?.user) return;
+    const user = data.user;
 
-      const subscription = supabase
-        .channel("bookings-updates-full")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            const updatedOrder = payload.new as Booking;
-            const deletedId = (payload.old as Booking | undefined)?.id;
+    const subscription = supabase
+      .channel("bookings-updates-full")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updatedOrder = payload.new as Booking;
+          const deletedId = (payload.old as Booking | undefined)?.id;  // Fixed here
 
-            setOrders((prev) => {
-              if (payload.eventType === "INSERT") return [updatedOrder, ...prev];
-              if (payload.eventType === "UPDATE")
-                return prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o));
-              if (payload.eventType === "DELETE")
-                return prev.filter((o) => o.id !== deletedId);
-              return prev;
-            });
-          }
-        )
-        .subscribe();
+          setOrders((prev) => {
+            if (payload.eventType === "INSERT") return [updatedOrder, ...prev];
+            if (payload.eventType === "UPDATE")
+              return prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o));
+            if (payload.eventType === "DELETE")
+              return prev.filter((o) => o.id !== deletedId);
+            return prev;
+          });
+        }
+      )
+      .subscribe();
 
-
-      return () => supabase.removeChannel(subscription);
-    };
-    setup();
-  }, []);
+    return () => supabase.removeChannel(subscription);
+  };
+  setup();
+}, []);
 
   const handleOpenReview = (order: Booking) => {
     setSelectedOrderToReview(order);
@@ -460,6 +469,7 @@ export default function MyOrdersPage() {
     const { text, bg, icon: Icon, stepIndex } = getStatusDetails(order.status);
     const isCompleted = order.status === "Work Done";
     const hasBeenReviewed = reviewedOrderIds.includes(order.id);
+    const { text: paymentText, bg: paymentBg, label: paymentLabel } = getPaymentStatusDetails(order.payment_id);
 
     const timelineSteps = [
       { label: "Booked & Pending", icon: Clock },
@@ -478,10 +488,12 @@ export default function MyOrdersPage() {
               <Icon className="w-3 h-3 mr-1.5 inline-block" />
               {order.status}
             </span>
+            <span className={`px-3 py-1 text-xs font-bold rounded-full ${paymentText} ${paymentBg} ml-2`}>
+              {paymentLabel}
+            </span>
           </div>
           <p className="text-slate-500 mt-2 sm:mt-0 flex items-center text-sm">
-            <Hash className="w-4 h-4 mr-1 text-slate-400" /> Order ID: <span className="font-mono ml-1 font-semibold">{order.order_no}
-</span>
+            <Hash className="w-4 h-4 mr-1 text-slate-400" /> Order ID: <span className="font-mono ml-1 font-semibold">{order.order_no}</span>
           </p>
         </div>
 
@@ -492,7 +504,7 @@ export default function MyOrdersPage() {
               {[
                 { label: "Date", value: formatDate(order.date), icon: Calendar },
                 { label: "Time", value: formatTime(order.booking_time), icon: Clock },
-                { label: "Price", value: `${order.total_price}`, icon: IndianRupee },
+                { label: "Price", value: `₹${order.total_price}`, icon: IndianRupee },
                 { label: "Customer Name", value: order.customer_name, icon: User },
               ].map((item, idx) => (
                 <div key={idx} className="flex items-center p-3 rounded-lg border border-slate-200">

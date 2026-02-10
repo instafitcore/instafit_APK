@@ -1,50 +1,27 @@
-"use client";
-
 import Image from "next/image";
 
-const WHATSAPP_PHONE = "917411443233";
+const WHATSAPP_PHONE = '7411443233';
 const PRESET_MESSAGE = `Hello,
 I would like to enquire about your furniture services.
-Please connect with me to discuss my requirements and advise on the next steps.
+Please connect with me to discuss further.
 Thank you.`;
 
-const whatsappLink = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(
-  PRESET_MESSAGE
-)}`;
+const whatsappLink = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(PRESET_MESSAGE)}`;
 
 export default function FloatingWhatsApp() {
   return (
-    <a
+    <a 
       href={whatsappLink}
-      target="_blank"
+      target="_blank" 
       rel="noopener noreferrer"
+      className="fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl transition-transform duration-300 hover:scale-110 flex items-center justify-center cursor-pointer"
       aria-label="Chat with us on WhatsApp"
-      className="
-        fixed
-        right-4
-        bottom-[calc(env(safe-area-inset-bottom)+3.5rem)]
-        md:bottom-8
-        z-[9999]
-        w-16
-        h-16
-        rounded-full
-        bg-white/80
-        backdrop-blur-md
-        shadow-2xl
-        flex
-        items-center
-        justify-center
-        hover:scale-110
-        transition-transform
-        duration-300
-      "
     >
-      <Image
+      <Image 
         src="/whats.svg"
         alt="WhatsApp"
-        width={34}
-        height={34}
-        priority
+        width={50}
+        height={50}
       />
     </a>
   );

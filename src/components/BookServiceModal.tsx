@@ -242,16 +242,34 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
     }
   }, [address.pincode, allowedPincodes]);
 
+  const autoFillAddress = () => {
+    // 🚫 In-app browser detection
+    const ua = navigator.userAgent || "";
+    const isInApp =
+      /FBAN|FBAV|Instagram|WhatsApp|Line|Twitter/i.test(ua);
 
-  const autoFillAddress = async () => {
-    if (!navigator.geolocation) {
+    if (isInApp) {
       toast({
-        title: "Not supported",
-        description: "Geolocation is not supported by your browser",
+        title: "Location not supported",
+        description: "Please open this page in Chrome or Safari to use location.",
         variant: "destructive",
       });
       return;
     }
+
+    if (!navigator.geolocation) {
+      toast({
+        title: "Not supported",
+        description: "Geolocation is not supported on this device.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Detecting location...",
+      description: "Please allow location access",
+    });
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -263,53 +281,63 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
             {
               headers: {
                 Accept: "application/json",
-                "User-Agent": "InstaFitCore/1.0 (contact@instafitcore.com)",
+                "User-Agent": "InstaFitCore/1.0",
               },
             }
           );
 
           const data = await res.json();
-          console.log("Reverse geocode response:", data);
 
-          if (!data?.address) {
-            throw new Error("No address found");
-          }
+          if (!data?.address) throw new Error("No address found");
 
           const addr = data.address;
 
           setAddress((prev) => ({
             ...prev,
+            streetLocality: addr.road || "",
             areaZone: addr.suburb || addr.neighbourhood || "",
             cityTown: addr.city || addr.town || addr.village || "",
             state: addr.state || "",
             pincode: addr.postcode || "",
-            streetLocality: addr.road || "",
           }));
 
           toast({
             title: "Address filled",
-            description: "Location details added automatically",
+            description: "Location detected successfully",
             variant: "success",
           });
         } catch (err) {
-          console.error("Auto-fill error:", err);
           toast({
             title: "Failed",
-            description: "Could not fetch address details",
+            description: "Unable to fetch address from location",
             variant: "destructive",
           });
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
+        let message = "Unable to fetch location.";
+
+        if (error.code === 1)
+          message = "Location permission denied. Please enable it in browser settings.";
+        else if (error.code === 2)
+          message = "Location unavailable. Please try again outdoors.";
+        else if (error.code === 3)
+          message = "Location request timed out. Please retry.";
+
         toast({
-          title: "Permission denied",
-          description: "Location access is required to auto-fill address",
+          title: "Location Error",
+          description: message,
           variant: "destructive",
         });
+      },
+      {
+        enableHighAccuracy: true, // 🔥 REQUIRED FOR MOBILE
+        timeout: 15000,           // 🔥 REQUIRED
+        maximumAge: 0,            // 🔥 REQUIRED
       }
     );
   };
+
 
   const getFilteredTimings = () => {
     if (!date) return timings;
@@ -436,196 +464,210 @@ export default function BookServiceModal({ service, isOpen, onClose }: Props) {
     address.fullName.trim() && address.mobile.trim() && address.pincode.trim();
 
   // --- Razorpay Payment ---
- const handleRazorpayPayment = async () => {
-  if (!validateForm() || isSubmitting) return;
-  setIsSubmitting(true);
+  const handleRazorpayPayment = async () => {
+    if (!validateForm() || isSubmitting) return;
+    setIsSubmitting(true);
 
-  try {
-    // 1️⃣ Get logged-in user
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      throw new Error("User not logged in");
-    }
+    try {
+      // 1️⃣ Get logged-in user
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error("User not logged in");
+      }
 
-    // 2️⃣ Load Razorpay SDK safely
-    const sdkLoaded = await loadRazorpay()
-      .then(() => true)
-      .catch(() => false);
+      // 2️⃣ Load Razorpay SDK safely
+      const sdkLoaded = await loadRazorpay()
+        .then(() => true)
+        .catch(() => false);
 
-    if (!sdkLoaded || !(window as any).Razorpay) {
-      throw new Error("Razorpay SDK failed to load");
-    }
+      if (!sdkLoaded || !(window as any).Razorpay) {
+        throw new Error("Razorpay SDK failed to load");
+      }
 
-    // 3️⃣ Create Razorpay order (SERVER)
-    const orderRes = await fetch("/api/razorpay/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount: Math.round(totalPrice * 100), // ✅ integer
-      }),
-    });
+      // 3️⃣ Create Razorpay order (SERVER)
+      const orderRes = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Math.round(totalPrice * 100), // ✅ integer
+        }),
+      });
 
-    if (!orderRes.ok) {
-      const errText = await orderRes.text();
-      console.error("Order API failed:", errText);
-      throw new Error("Order creation failed");
-    }
+      if (!orderRes.ok) {
+        const errText = await orderRes.text();
+        console.error("Order API failed:", errText);
+        throw new Error("Order creation failed");
+      }
 
-    const order = await orderRes.json();
+      const order = await orderRes.json();
 
-    if (!order?.id) {
-      throw new Error("Invalid order response");
-    }
+      if (!order?.id) {
+        throw new Error("Invalid order response");
+      }
 
-    // 4️⃣ Razorpay options
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-      amount: order.amount,
-      currency: "INR",
-      order_id: order.id,
-      name: "Insta Fit Core",
-      description: `Payment for ${service.service_name}`,
+      // 4️⃣ Razorpay options
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+        amount: order.amount,
+        currency: "INR",
+        order_id: order.id,
+        name: "Insta Fit Core",
+        description: `Payment for ${service.service_name}`,
 
-      handler: async (response: any) => {
-        await verifyAndSavePayment({
-          payment_id: response.razorpay_payment_id,
-          order_id: response.razorpay_order_id,
-          signature: response.razorpay_signature,
+        handler: async (response: any) => {
+          await verifyAndSavePayment({
+            payment_id: response.razorpay_payment_id,
+            order_id: response.razorpay_order_id,
+            signature: response.razorpay_signature,
+          });
+        },
+
+        prefill: {
+          email: userData.user.email || "",
+          contact: address.mobile || "9999999999",
+        },
+
+        theme: {
+          color: "#8ed26b",
+        },
+      };
+
+      // 5️⃣ Open Razorpay
+      const rzp = new (window as any).Razorpay(options);
+
+      rzp.on("payment.failed", (response: any) => {
+        toast({
+          title: "Payment failed",
+          description: response.error.description || "Please try again",
+          variant: "destructive",
         });
-      },
+        setIsSubmitting(false);
+      });
 
-      prefill: {
-        email: userData.user.email || "",
-        contact: address.mobile || "9999999999",
-      },
+      // 🔥 MOST IMPORTANT FIX
+      rzp.on("modal.closed", () => {
+        setIsSubmitting(false);
+        onClose(); // ✅ Close the modal normally even if user cancels
+      });
 
-      theme: {
-        color: "#8ed26b",
-      },
-    };
 
-    // 5️⃣ Open Razorpay
-    const rzp = new (window as any).Razorpay(options);
+      // ✅ OPEN ONLY ONCE
+      rzp.open();
 
-    rzp.on("payment.failed", function (response: any) {
-      console.error("Payment failed:", response.error);
+
+    } catch (err: any) {
+      console.error("Razorpay start error:", err);
       toast({
-        title: "Payment failed",
-        description: response.error.description || "Please try again",
+        title: "Payment Error",
+        description: err?.message || "Unable to start payment",
         variant: "destructive",
       });
       setIsSubmitting(false);
-    });
+    }
+  };
 
-    rzp.open();
-
-  } catch (err: any) {
-    console.error("Razorpay start error:", err);
-    toast({
-      title: "Payment Error",
-      description: err?.message || "Unable to start payment",
-      variant: "destructive",
-    });
-    setIsSubmitting(false);
-  }
-};
-
+  // --- On-Site Payment (No Razorpay) ---
+  const handleOnSitePayment = async () => {
+    if (!validateForm() || isSubmitting) return;
+    setIsSubmitting(true);
+    await handleSubmit(); // No payment_id, order_id for on-site
+  };
 
   // --- Save booking after payment ---
   // --- Save booking after payment ---
- const handleSubmit = async (payment_id?: string, order_id?: string) => {
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error("User not logged in");
+  const handleSubmit = async (payment_id?: string, order_id?: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("User not logged in");
 
-    const formattedAddress =
-      `${address.flatHousePlot}, Floor ${address.floor}, ${address.buildingApartment}, ${address.streetLocality}, ${address.areaZone}, ${address.cityTown}, ${address.state} - ${address.pincode}` +
-      (address.landmark.trim() ? ` (Landmark: ${address.landmark})` : '');
+      const formattedAddress =
+        `${address.flatHousePlot}, Floor ${address.floor}, ${address.buildingApartment}, ${address.streetLocality}, ${address.areaZone}, ${address.cityTown}, ${address.state} - ${address.pincode}` +
+        (address.landmark.trim() ? ` (Landmark: ${address.landmark})` : '');
 
-    const { data: insertedData, error: insertError } = await supabase
-      .from("bookings")
-      .insert([
-        {
-          user_id: userData.user.id,
-          customer_name: address.fullName,
-          customer_mobile: address.mobile,
-          service_id: service.id,
-          service_name: service.service_name,
-          service_types: serviceTypes,
+      const { data: insertedData, error: insertError } = await supabase
+        .from("bookings")
+        .insert([
+          {
+            user_id: userData.user.id,
+            customer_name: address.fullName,
+            customer_mobile: address.mobile,
+            service_id: service.id,
+            service_name: service.service_name,
+            service_types: serviceTypes,
+            date,
+            booking_time: `${to24HourTime(time)}:00`,
+            total_price: totalPrice,
+            address: formattedAddress,
+
+            // ✅ SAVE BOTH
+            status: payment_id ? "Paid" : "Pending",
+            payment_id: payment_id || null,
+            razorpay_order_id: order_id || null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setSubmissionStatus("success");
+
+      const dbOrderNo = insertedData?.order_no || "N/A";
+
+      toast({
+        title: "Booking successful!",
+        description: `Your booking is confirmed. Order No: ${dbOrderNo}`,
+        variant: "success",
+      });
+
+      await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: userData.user.email,
+          name: address.fullName,
+          service: service.service_name,
           date,
-          booking_time: `${to24HourTime(time)}:00`,
-          total_price: totalPrice,
-          address: formattedAddress,
+          time,
+          amount: totalPrice,
+          orderId: dbOrderNo,
+        }),
+      });
 
-          // ✅ SAVE BOTH
-          status: payment_id ? "Paid" : "Pending",
-          payment_id: payment_id || null,
-          razorpay_order_id: order_id || null,
-        },
-      ])
-      .select()
-      .single();
+      onClose();
+      router.push("/site/order-tracking");
 
-    if (insertError) throw insertError;
+    } catch (err: any) {
+      console.error("Booking failed:", err);
+      setSubmissionStatus("error");
+      toast({
+        title: "Booking failed",
+        description: err?.message || "Unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    setSubmissionStatus("success");
 
-    const dbOrderNo = insertedData?.order_no || "N/A";
-
-    toast({
-      title: "Booking successful!",
-      description: `Your booking is confirmed. Order No: ${dbOrderNo}`,
-      variant: "success",
-    });
-
-    await fetch("/api/send-email", {
+  const verifyAndSavePayment = async ({ payment_id, order_id, signature }: any) => {
+    const res = await fetch("/api/razorpay/verify-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: userData.user.email,
-        name: address.fullName,
-        service: service.service_name,
-        date,
-        time,
-        amount: totalPrice,
-        orderId: dbOrderNo,
-      }),
+      body: JSON.stringify({ payment_id, order_id, signature }),
     });
 
-    onClose();
-    router.push("/site/order-tracking");
+    const data = await res.json(); // now it will not fail
 
-  } catch (err: any) {
-    console.error("Booking failed:", err);
-    setSubmissionStatus("error");
-    toast({
-      title: "Booking failed",
-      description: err?.message || "Unexpected error occurred. Please try again.",
-      variant: "destructive",
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    if (!data?.success) {
+      throw new Error(data?.error || "Payment verification failed");
+    }
 
+    await handleSubmit(payment_id, order_id);
+  };
 
-const verifyAndSavePayment = async ({ payment_id, order_id, signature }: any) => {
-  const res = await fetch("/api/razorpay/verify-payment", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ payment_id, order_id, signature }),
-  });
-
-  const data = await res.json(); // now it will not fail
-
-  if (!data?.success) {
-    throw new Error(data?.error || "Payment verification failed");
-  }
-
-  await handleSubmit(payment_id, order_id);
-};
-
-if (!isOpen) return null;
+  if (!isOpen) return null;
 
   const availableServices = SERVICE_TYPES.filter(opt => Number(service[opt.priceKey]) > 0);
   // Type guard for nested address errors
@@ -647,9 +689,15 @@ if (!isOpen) return null;
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl p-6 sm:p-8 w-full max-w-lg mx-auto shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
 
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 transition rounded-full hover:bg-gray-100" disabled={isSubmitting}>
+        <button
+          onClick={() => {
+            onClose();
+          }}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 transition rounded-full hover:bg-gray-100"
+        >
           <X className="w-5 h-5" />
         </button>
+
 
         <h2 className="text-3xl font-extrabold text-gray-900 mb-2 border-b pb-2">
           Book <span style={{ color: PRIMARY_COLOR }}>{service.service_name}</span>
@@ -880,9 +928,14 @@ if (!isOpen) return null;
               <p className="text-sm font-semibold text-gray-700">Tax (18% GST): ₹{taxAmount}</p>
               <p className="text-lg font-extrabold" style={{ color: ACCENT_COLOR }}>Total: ₹{totalPrice}</p>
             </div>
-            <button onClick={handleRazorpayPayment} disabled={isSubmitting || !isFormValid} className={`py-3 px-6 sm:px-8 text-white font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center w-full sm:w-auto ${isSubmitting || !isFormValid ? 'bg-gray-400 cursor-not-allowed' : 'hover:scale-[1.02] hover:shadow-xl'}`} style={{ backgroundColor: PRIMARY_COLOR }}>
-              {isSubmitting ? <><Loader2 className="animate-spin w-5 h-5 mr-2" />Booking...</> : "Confirm Booking"}
-            </button>
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              <button onClick={handleRazorpayPayment} disabled={isSubmitting || !isFormValid} className={`py-3 px-6 sm:px-8 text-white font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center w-full sm:w-auto ${isSubmitting || !isFormValid ? 'bg-gray-400 cursor-not-allowed' : 'hover:scale-[1.02] hover:shadow-xl'}`} style={{ backgroundColor: PRIMARY_COLOR }}>
+                {isSubmitting ? <><Loader2 className="animate-spin w-5 h-5 mr-2" />Processing...</> : "Pay Now"}
+              </button>
+              <button onClick={handleOnSitePayment} disabled={isSubmitting || !isFormValid} className={`py-3 px-6 sm:px-8 text-white font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center w-full sm:w-auto ${isSubmitting || !isFormValid ? 'bg-gray-400 cursor-not-allowed' : 'hover:scale-[1.02] hover:shadow-xl'}`} style={{ backgroundColor: ACCENT_COLOR }}>
+                {isSubmitting ? <><Loader2 className="animate-spin w-5 h-5 mr-2" />Processing...</> : "On-Site Payment"}
+              </button>
+            </div>
           </div>
         </div>
 

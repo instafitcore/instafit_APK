@@ -785,53 +785,111 @@ export default function CartPage() {
         await handleSubmit(payment_id, order_id);
     };
 
-    const handleUseMyLocation = async () => {
-        if (!navigator.geolocation) {
-            toast({
-                title: "Not supported",
-                description: "Geolocation is not supported in this browser.",
-                variant: "destructive",
-            });
+    // Handle on-site payment (no payment_id, order_id)
+    const handleOnSitePayment = useCallback(async () => {
+        setSubmitAttempted(true);
+
+        if (cartItems.length === 0) {
+            toast({ title: "Cart empty", description: "Add items before checkout.", variant: "destructive" });
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                try {
-                    const { latitude, longitude } = position.coords;
-                    const res = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-                        {
-                            headers: {
-                                Accept: "application/json",
-                                "User-Agent": "InstaFitCore/1.0 (support@instafitcore.com)",
-                            },
-                        }
-                    );
+        const errors = validateAddress(addressFields);
+        setAddressErrors(errors);
 
-                    const data = await res.json();
-                    if (!data?.address) throw new Error("No address found");
-
-                    const addr = data.address;
-                    setAddressFields((prev) => ({
-                        ...prev,
-                        streetLocality: addr.road || "",
-                        areaZone: addr.suburb || addr.neighbourhood || "",
-                        cityTown: addr.city || addr.town || addr.village || "",
-                        state: addr.state || "",
-                        pincode: addr.postcode || "",
-                    }));
-
-                    toast({ title: "Location detected", description: "Address auto-filled.", variant: "success" });
-                } catch (err) {
-                    toast({ title: "Failed", description: "Could not fetch address.", variant: "destructive" });
-                }
-            },
-            () => {
-                toast({ title: "Permission denied", description: "Please allow location access.", variant: "destructive" });
+        const hasInvalidItems = cartItems.some((it) => !it.service || !it.selected_services?.length);
+        if (Object.keys(errors).length > 0 || hasInvalidItems) {
+            if (hasInvalidItems) {
+                toast({
+                    title: "Selection missing",
+                    description: "Please select service options for all items.",
+                    variant: "destructive",
+                });
             }
+            return;
+        }
+
+        setIsSubmitting(true);
+        await handleSubmit(); // No payment_id, order_id for on-site
+    }, [cartItems, addressFields, toast, router, serviceablePincodes]);
+
+   const handleUseMyLocation = () => {
+  if (!navigator.geolocation) {
+    toast({
+      title: "Not supported",
+      description: "Geolocation is not supported on this device.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      try {
+        const { latitude, longitude } = position.coords;
+
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+          {
+            headers: {
+              Accept: "application/json",
+              "User-Agent": "InstaFitCore/1.0",
+            },
+          }
         );
-    };
+
+        const data = await res.json();
+
+        if (!data?.address) throw new Error();
+
+        const addr = data.address;
+
+        setAddressFields((prev) => ({
+          ...prev,
+          streetLocality: addr.road || "",
+          areaZone: addr.suburb || addr.neighbourhood || "",
+          cityTown: addr.city || addr.town || addr.village || "",
+          state: addr.state || "",
+          pincode: addr.postcode || "",
+        }));
+
+        toast({
+          title: "Location detected",
+          description: "Address filled successfully.",
+          variant: "success",
+        });
+      } catch {
+        toast({
+          title: "Failed",
+          description: "Unable to detect address from location.",
+          variant: "destructive",
+        });
+      }
+    },
+    (error) => {
+      let msg = "Location access failed.";
+
+      if (error.code === 1)
+        msg = "Please allow location permission in browser settings.";
+      if (error.code === 2)
+        msg = "Location unavailable.";
+      if (error.code === 3)
+        msg = "Location request timed out.";
+
+      toast({
+        title: "Location Error",
+        description: msg,
+        variant: "destructive",
+      });
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0,
+    }
+  );
+};
+
 
     useEffect(() => {
         const errors = validateAddress(addressFields);
@@ -1029,21 +1087,40 @@ export default function CartPage() {
                         <p style={{ color: PRIMARY_COLOR }} className="flex items-center">₹{cartTotal.toFixed(2)}</p>
                     </div>
 
-                    <button
-                        onClick={handleRazorpayPayment}
-                        disabled={
-                            cartItems.length === 0 ||
-                            cartItems.some((it) => !it.selected_services?.length) ||
-                            !isPincodeValid ||
-                            cartItems.some((it) => it.isUpdating) ||
-                            isSubmitting
-                        }
-                        className={`w-full mt-6 sm:mt-8 py-3 sm:py-4 text-white text-lg sm:text-xl font-bold rounded-xl shadow-xl transition-all duration-300 flex items-center justify-center hover:scale-[1.01] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
-                        style={{ backgroundColor: PRIMARY_COLOR }}
-                    >
-                        {isSubmitting ? <><Loader2 className="animate-spin w-5 h-5 mr-2" />Processing...</> : "Continue"}
-                        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 ml-2" />
-                    </button>
+                    {/* Payment Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 mt-6 sm:mt-8">
+                        <button
+                            onClick={handleRazorpayPayment}
+                            disabled={
+                                cartItems.length === 0 ||
+                                cartItems.some((it) => !it.selected_services?.length) ||
+                                !isPincodeValid ||
+                                cartItems.some((it) => it.isUpdating) ||
+                                isSubmitting
+                            }
+                            className={`flex-1 py-3 sm:py-4 text-white text-lg sm:text-xl font-bold rounded-xl shadow-xl transition-all duration-300 flex items-center justify-center hover:scale-[1.01] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
+                            style={{ backgroundColor: PRIMARY_COLOR }}
+                        >
+                            {isSubmitting ? <><Loader2 className="animate-spin w-5 h-5 mr-2" />Processing...</> : "Pay Now"}
+                            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 ml-2" />
+                        </button>
+
+                        <button
+                            onClick={handleOnSitePayment}
+                            disabled={
+                                cartItems.length === 0 ||
+                                cartItems.some((it) => !it.selected_services?.length) ||
+                                !isPincodeValid ||
+                                cartItems.some((it) => it.isUpdating) ||
+                                isSubmitting
+                            }
+                            className={`flex-1 py-3 sm:py-4 text-white text-lg sm:text-xl font-bold rounded-xl shadow-xl transition-all duration-300 flex items-center justify-center hover:scale-[1.01] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed`}
+                            style={{ backgroundColor: ACCENT_COLOR }}
+                        >
+                            {isSubmitting ? <><Loader2 className="animate-spin w-5 h-5 mr-2" />Processing...</> : "On-Site Payment"}
+                            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 ml-2" />
+                        </button>
+                    </div>
 
                     <div className="mt-4 sm:mt-6 p-3 text-xs sm:text-sm rounded-lg text-gray-600 bg-white border border-gray-200 flex items-center">
                         <Info className="w-3 h-3 sm:w-4 sm:h-4 mr-2 flex-shrink-0" />
