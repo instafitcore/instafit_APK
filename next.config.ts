@@ -1,11 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  trailingSlash: true,
+  output: 'export', // This is the most important line
   images: {
-    unoptimized: true,
+    unoptimized: true, // Required for mobile apps
   },
-  output: 'export',     // required for static export
-  distDir: 'out',       // outputs files to "out" folder
 };
 
-module.exports = nextConfig;
+export default nextConfig;
