@@ -1,9 +1,8 @@
-"use client"; // Mandatory for using useEffect in Next.js App Router
+"use client";
 
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { useEffect } from "react"; // Added this
-import { SplashScreen } from "@capacitor/splash-screen"; // Added this
+import { useEffect } from "react"; 
+import { SplashScreen } from "@capacitor/splash-screen"; 
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,11 +15,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Note: In Next.js App Router, metadata must be in a separate file 
-// or the layout must not have "use client" if you want to export it here.
-// Since we NEED "use client" for the splash screen, I've moved the logic 
-// into a separate client component or internal function.
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,12 +24,12 @@ export default function RootLayout({
   useEffect(() => {
     const hideSplashScreen = async () => {
       try {
-        // We add a tiny delay (500ms) to ensure the first paint of the 
-        // website is done so the user doesn't see a white flash.
+        // Wait 500ms so the website is definitely loaded behind the splash
         setTimeout(async () => {
           await SplashScreen.hide();
         }, 500);
       } catch (error) {
+        // This catch prevents the app from crashing when testing in a web browser
         console.warn("Capacitor Splash Screen not found (normal in browser)");
       }
     };
